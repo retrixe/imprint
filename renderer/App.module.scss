@@ -11,26 +11,3 @@
   width: 100%;
   max-width: 540px;
 }
-
-.select-container {
-  display: flex;
-  padding-top: 0.4em;
-  padding-bottom: 0.4em;
-  > :last-child {
-    margin-left: 0.4em;
-  }
-}
-
-.flash-progress-container {
-  display: flex;
-  align-items: center;
-  padding-top: 0.4em;
-}
-
-.full-width {
-  width: 100%;
-}
-
-.spacer {
-  width: 5px;
-}

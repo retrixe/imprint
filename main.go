@@ -18,7 +18,6 @@ import (
 	webview "github.com/webview/webview_go"
 )
 
-// FIXME: Design UI (with live warnings/errors).
 // FIXME: Validate written image.
 // TODO: Future support for flashing to an internal drive?
 
@@ -132,7 +131,6 @@ func main() {
 			} else if !stat.Mode().IsRegular() {
 				w.Eval("setDialogReact(" + ParseToJsString("Error: Select a regular file!") + ")")
 			} else { // Send this back to React.
-				w.Eval("setFileSizeReact(" + strconv.Itoa(int(stat.Size())) + ")")
 				w.Eval("setFileReact(" + ParseToJsString(filename) + ")")
 			}
 		}
@@ -142,7 +140,7 @@ func main() {
 	var inputPipe io.WriteCloser
 	var cancelled bool = false
 	var mutex sync.Mutex
-	w.Bind("flash", func(file string, selectedDevice string) {
+	w.Bind("flash", func(file string, device string, deviceSize int) {
 		cancelled = false
 		stat, err := os.Stat(file)
 		if err != nil {
@@ -151,18 +149,19 @@ func main() {
 		} else if !stat.Mode().IsRegular() {
 			w.Eval("setDialogReact(" + ParseToJsString("Error: Select a regular file!") + ")")
 			return
-		} else {
-			w.Eval("setFileSizeReact(" + strconv.Itoa(int(stat.Size())) + ")")
+		} else if stat.Size() > int64(deviceSize) {
+			w.Eval("setDialogReact(" + ParseToJsString("Error: The disk image is too big to fit on the selected drive!") + ")")
+			return
 		}
-		channel, stdin, err := app.CopyConvert(file, selectedDevice)
+		fileSizeStr := strconv.Itoa(int(stat.Size()))
+		channel, stdin, err := app.CopyConvert(file, device)
 		inputPipe = stdin
 		if err != nil {
 			w.Eval("setDialogReact(" + ParseToJsString("Error: "+err.Error()) + ")")
 			return
-		} else {
-			w.Eval("setSpeedReact(" + ParseToJsString("0 MB/s") + ")") // Show progress instantly.
-			w.Eval("setProgressReact(0)")
 		}
+		// Show progress instantly.
+		w.Eval("setProgressReact({ bytes: 0, total: " + fileSizeStr + ", speed: '0 MB/s' })")
 		go (func() {
 			errored := false
 			for {
@@ -177,10 +176,11 @@ func main() {
 					w.Dispatch(func() {
 						if progress.Error != nil { // Error is always the last emitted.
 							errored = true
-							w.Eval("setDialogReact(" + ParseToJsString("Error: "+progress.Error.Error()) + ")")
+							w.Eval("setProgressReact(" + ParseToJsString("Error: "+progress.Error.Error()) + ")")
 						} else {
-							w.Eval("setSpeedReact(" + ParseToJsString(progress.Speed) + ")")
-							w.Eval("setProgressReact(" + strconv.Itoa(progress.Bytes) + ")")
+							w.Eval("setProgressReact({ bytes: " + strconv.Itoa(progress.Bytes) +
+								", total: " + fileSizeStr +
+								", speed: " + ParseToJsString(progress.Speed) + " })")
 						}
 					})
 				} else {

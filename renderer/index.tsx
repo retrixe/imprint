@@ -5,17 +5,20 @@ import App from './App'
 declare global {
   /* eslint-disable no-var */
   // Exports from Go app process.
-  var flash: (filePath: string, devicePath: string) => void
+  var flash: (filePath: string, devicePath: string, deviceSize: number) => void
   var cancelFlash: () => void
   var promptForFile: () => void
   var refreshDevices: () => void
   // Export React state to the global scope.
   var setFileReact: (file: string) => void
-  var setSpeedReact: (speed: string) => void
-  var setDialogReact: (dialog: string) => void
   var setDevicesReact: (devices: string[]) => void
-  var setFileSizeReact: (fileSize: number) => void
-  var setProgressReact: (progress: number | string | null) => void
+  var setDialogReact: (dialog: string) => void
+  var setProgressReact: (progress: Progress | string | null) => void
+  interface Progress {
+    bytes: number
+    total: number
+    speed: string
+  }
 } /* eslint-enable no-var */
 
 const theme = extendTheme({
