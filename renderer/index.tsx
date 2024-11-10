@@ -1,3 +1,4 @@
+import { CssBaseline, CssVarsProvider, extendTheme } from '@mui/joy'
 import { createRoot } from 'react-dom/client'
 import App from './App'
 
@@ -15,10 +16,22 @@ declare global {
   var setDevicesReact: (devices: string[]) => void
   var setFileSizeReact: (fileSize: number) => void
   var setProgressReact: (progress: number | string | null) => void
-  var setSelectedDeviceReact: (selectedDevice: string) => void
 } /* eslint-enable no-var */
+
+const theme = extendTheme({
+  fontFamily: {
+    body: 'system-ui, -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto, noto, arial, sans-serif',
+    display:
+      'system-ui, -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto, noto, arial, sans-serif',
+  },
+})
 
 const el = document.getElementById('app')
 if (el !== null) {
-  createRoot(el).render(<App />)
+  createRoot(el).render(
+    <CssVarsProvider theme={theme}>
+      <CssBaseline />
+      <App />
+    </CssVarsProvider>,
+  )
 }

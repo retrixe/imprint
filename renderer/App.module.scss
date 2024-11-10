@@ -1,16 +1,24 @@
+.root {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
 .container {
-  padding: 8px;
+  width: 100%;
+  max-width: 540px;
 }
 
-.select-image-container {
+.select-container {
   display: flex;
-  padding-bottom: 0.4em;
-}
-
-.select-device-container {
-  display: flex;
-  padding-bottom: 0.4em;
   padding-top: 0.4em;
+  padding-bottom: 0.4em;
+  > :last-child {
+    margin-left: 0.4em;
+  }
 }
 
 .flash-progress-container {
@@ -21,10 +29,6 @@
 
 .full-width {
   width: 100%;
-}
-
-.refresh-button {
-  min-width: 69px;
 }
 
 .spacer {

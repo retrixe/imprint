@@ -1,23 +1,20 @@
+import { DialogContent, DialogTitle, Modal, ModalClose, ModalDialog } from '@mui/joy'
 import * as styles from './Dialog.module.scss'
 
 const Dialog = (props: {
-  handleDismiss: () => void
+  open: boolean
+  onClose: () => void
   message: string
   error: boolean
 }): JSX.Element => {
   return (
-    <div className={styles.dialog}>
-      <div className={styles['dialog-contents']}>
-        <h2 className={`${styles.header} ${props.error ? styles.error : ''}`}>
-          {props.error ? 'Error' : 'Message'}
-        </h2>
-        <p>{props.message}</p>
-        <div className={styles['flex-spacer']} />
-        <button className={styles['dismiss-button']} onClick={props.handleDismiss}>
-          Dismiss
-        </button>
-      </div>
-    </div>
+    <Modal open={props.open} onClose={props.onClose}>
+      <ModalDialog className={styles['dialog-sheet']} color={props.error ? 'danger' : undefined}>
+        <ModalClose variant='soft' />
+        <DialogTitle>{props.error ? 'Error' : 'Info'}</DialogTitle>
+        <DialogContent>{props.message}</DialogContent>
+      </ModalDialog>
+    </Modal>
   )
 }
 

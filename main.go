@@ -75,7 +75,7 @@ func main() {
 	}
 	w = webview.New(debug)
 	defer w.Destroy()
-	w.SetSize(540, 240, webview.HintNone)
+	w.SetSize(640, 320, webview.HintNone)
 	w.SetTitle("Imprint " + version)
 
 	// Bind a function to inject JavaScript and CSS via webview.Eval.
@@ -113,9 +113,6 @@ func main() {
 		}
 		// Call setDevicesReact.
 		w.Eval("setDevicesReact([" + strings.Join(jsonifiedDevices, ", ") + "])")
-		if len(jsonifiedDevices) >= 1 {
-			w.Eval("setSelectedDeviceReact(" + jsonifiedDevices[0] + ")")
-		}
 	})
 
 	// Bind a function to prompt for file.
