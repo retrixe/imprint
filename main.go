@@ -163,7 +163,7 @@ func main() {
 		// Show progress instantly.
 		w.Eval("setProgressReact({ bytes: 0, total: " + fileSizeStr + ", speed: '0 MB/s' })")
 		go (func() {
-			errored := false
+			result := "Done!"
 			for {
 				progress, ok := <-channel
 				mutex.Lock()
@@ -173,23 +173,20 @@ func main() {
 				}
 				mutex.Unlock()
 				if ok {
-					w.Dispatch(func() {
-						if progress.Error != nil { // Error is always the last emitted.
-							errored = true
-							w.Eval("setProgressReact(" + ParseToJsString("Error: "+progress.Error.Error()) + ")")
-						} else {
+					if progress.Error != nil { // Error is always the last emitted.
+						result = progress.Error.Error()
+					} else {
+						w.Dispatch(func() {
 							w.Eval("setProgressReact({ bytes: " + strconv.Itoa(progress.Bytes) +
 								", total: " + fileSizeStr +
 								", speed: " + ParseToJsString(progress.Speed) + " })")
-						}
-					})
+						})
+					}
 				} else {
 					break
 				}
 			}
-			if !errored {
-				w.Dispatch(func() { w.Eval("setProgressReact(\"Done!\")") })
-			}
+			w.Dispatch(func() { w.Eval("setProgressReact(" + ParseToJsString(result) + ")") })
 		})()
 	})
 

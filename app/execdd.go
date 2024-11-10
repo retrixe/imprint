@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"io"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"sync"
@@ -25,7 +26,9 @@ type DdError struct {
 
 func (err *DdError) Error() string {
 	output := strings.TrimSpace(err.Message)
-	if output == "" {
+	if _, ok := err.Err.(*exec.ExitError); ok && output != "" {
+		return output
+	} else if output == "" {
 		return err.Err.Error()
 	}
 	return err.Err.Error() + ": " + output
@@ -48,7 +51,7 @@ func CopyConvert(iff string, of string) (chan DdProgress, io.WriteCloser, error)
 	if os.Getenv("__USE_SYSTEM_DD") == "true" {
 		ddFlag = "--use-system-dd"
 	}
-	cmd, err := ElevatedCommand(executable, "dd", iff, of, ddFlag)
+	cmd, err := ElevatedCommand(executable, "flash", iff, of, ddFlag)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -71,9 +74,6 @@ func CopyConvert(iff string, of string) (chan DdProgress, io.WriteCloser, error)
 		defer input.Close()
 		err := cmd.Wait()
 		if err != nil {
-			if ddFlag == "" {
-				lastLine = ""
-			}
 			channel <- DdProgress{
 				Error: &DdError{Message: lastLine, Err: err},
 			}
@@ -86,7 +86,7 @@ func CopyConvert(iff string, of string) (chan DdProgress, io.WriteCloser, error)
 	// Read the output line by line.
 	go (func() {
 		scanner := bufio.NewScanner(output)
-		scanner.Split(ScanCrLines)
+		scanner.Split(ScanCRLFLines)
 		for scanner.Scan() {
 			text := scanner.Text()
 			println(text)
@@ -112,33 +112,33 @@ func CopyConvert(iff string, of string) (chan DdProgress, io.WriteCloser, error)
 	return channel, stdin, nil
 }
 
-// dropCR drops a terminal \r from the data.
-func dropCR(data []byte) []byte {
-	if len(data) > 0 && data[len(data)-1] == '\r' {
+// dropCRLF drops a terminal \r or \n from the data.
+func dropCRLF(data []byte) []byte {
+	if len(data) > 0 && (data[len(data)-1] == '\r' || data[len(data)-1] == '\n') {
 		return data[0 : len(data)-1]
 	}
 	return data
 }
 
-// ScanCrLines is a split function for a Scanner that returns each line of
+// ScanCRLFLines is a split function for a Scanner that returns each line of
 // text, stripped of any trailing end-of-line marker. The returned line may
 // be empty. The end-of-line marker is one carriage return or one mandatory
 // newline. In regular expression notation, it is `\r|\n`. The last
 // non-empty line of input will be returned even if it has no newline.
-func ScanCrLines(data []byte, atEOF bool) (advance int, token []byte, err error) {
+func ScanCRLFLines(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	if atEOF && len(data) == 0 {
 		return 0, nil, nil
 	}
 	if i := bytes.IndexByte(data, '\n'); i >= 0 {
 		// We have a full newline-terminated line.
-		return i + 1, dropCR(data[0:i]), nil
+		return i + 1, dropCRLF(data[0:i]), nil
 	} else if i := bytes.IndexByte(data, '\r'); i >= 0 {
 		// We have a full carriage return-terminated line.
-		return i + 1, dropCR(data[0:i]), nil
+		return i + 1, dropCRLF(data[0:i]), nil
 	}
 	// If we're at EOF, we have a final, non-terminated line. Return it.
 	if atEOF {
-		return len(data), dropCR(data), nil
+		return len(data), dropCRLF(data), nil
 	}
 	// Request more data.
 	return 0, nil, nil
