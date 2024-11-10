@@ -19,7 +19,9 @@ const App = (): JSX.Element => {
   globalThis.setProgressReact = setProgress
   globalThis.setFileSizeReact = setFileSize
   globalThis.setSelectedDeviceReact = setSelectedDevice
-  useEffect(() => globalThis.refreshDevices(), [])
+  useEffect(() => {
+    globalThis.refreshDevices()
+  }, [])
 
   const inProgress = typeof progress === 'number'
   useEffect(() => setConfirm(false), [inProgress])

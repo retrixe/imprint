@@ -39,12 +39,9 @@ var js string
 // ParseToJsString takes a string, escapes slashes and double-quotes, adds newlines for multi-line
 // strings and wraps it in double-quotes, allowing it to be passed to JavaScript.
 func ParseToJsString(s string) string {
-	split := strings.Split(s, "\n")
-	result := `"` + strings.ReplaceAll(strings.ReplaceAll(split[0], `\`, `\\`), `"`, `\"`) + `"`
-	for _, line := range split[1:] {
-		result += ` + "\n` + strings.ReplaceAll(strings.ReplaceAll(line, `\`, `\\`), `"`, `\"`) + `"`
-	}
-	return result
+	return strings.ReplaceAll(
+		`"`+strings.ReplaceAll(strings.ReplaceAll(s, `\`, `\\`), `"`, `\"`)+`"`,
+		"\n", `\n`)
 }
 
 func main() {
@@ -78,15 +75,12 @@ func main() {
 	}
 	w = webview.New(debug)
 	defer w.Destroy()
-	w.SetSize(420, 210, webview.HintNone)
+	w.SetSize(540, 240, webview.HintNone)
 	w.SetTitle("Imprint " + version)
 
 	// Bind a function to inject JavaScript and CSS via webview.Eval.
 	w.Bind("initiate", func() {
-		w.Eval(`// inject <style> tag
-const style = document.createElement('style')
-style.textContent = ` + ParseToJsString(css) + `
-document.head.appendChild(style)`)
+		w.Eval(`document.getElementById('inject-css').textContent = ` + ParseToJsString(css))
 		w.Eval(js)
 	})
 
