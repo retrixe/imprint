@@ -101,6 +101,49 @@ func FlashFileToBlockDevice(iff string, of string) {
 	quit <- true
 }
 
+// ValidateBlockDeviceContent checks if the block device contents match the given file.
+func ValidateBlockDeviceContent(iff string, of string) {
+	quit := handleStopInput(func() { os.Exit(0) })
+	src := openFile(iff, os.O_RDONLY, 0, "file")
+	dest := openFile(of, os.O_RDONLY|os.O_EXCL, os.ModePerm, "destination")
+	bs := 4 * 1024 * 1024 // TODO: Allow configurability?
+	timer := time.NewTimer(time.Second)
+	startTime := time.Now().UnixMilli()
+	var total int
+	buf1 := make([]byte, bs)
+	buf2 := make([]byte, bs)
+	for {
+		n1, err1 := src.Read(buf1)
+		n2, err2 := dest.Read(buf2)
+		if err1 == io.EOF && err2 == io.EOF {
+			break
+		} else if err1 != nil && err1 != io.EOF {
+			log.Fatalln("Encountered error while validating device!", err1)
+		} else if err2 != nil && err2 != io.EOF {
+			log.Fatalln("Encountered error while validating device!", err2)
+		} else if n2 != n1 || err1 != nil || err2 != nil || !bytes.Equal(buf1[:n1], buf2[:n2]) {
+			log.Fatalln("Read/write mismatch! Validation of image failed. It is unsafe to boot this device.")
+		}
+		total += n1
+		if len(timer.C) > 0 {
+			// There's some minor differences in output with dd, mainly decimal places and kB vs KB.
+			timeDifference := time.Now().UnixMilli() - startTime
+			print(strconv.Itoa(total) + " bytes " +
+				"(" + BytesToString(total, false) + ", " + BytesToString(total, true) + ") validated, " +
+				strconv.Itoa(int(timeDifference/1000)) + " s, " +
+				BytesToString(total/(int(timeDifference)/1000), false) + "/s\r")
+			<-timer.C
+			timer.Reset(time.Second)
+		}
+	}
+	timeDifference := float64(time.Now().UnixMilli()-startTime) / 1000
+	println(strconv.Itoa(total) + " bytes " +
+		"(" + BytesToString(total, false) + ", " + BytesToString(total, true) + ") validated, " +
+		strconv.FormatFloat(timeDifference, 'f', 3, 64) + " s, " +
+		BytesToString(int(float64(total)/timeDifference), false) + "/s")
+	quit <- true
+}
+
 func openFile(filePath string, flag int, mode fs.FileMode, name string) *os.File {
 	path, err := filepath.Abs(filePath)
 	if err != nil {

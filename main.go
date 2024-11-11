@@ -55,19 +55,21 @@ func main() {
 			println("Invalid usage: imprint flash <file> <destination> (--use-system-dd)")
 			os.Exit(1)
 		}
-		log.Println("Phase 1/2: Unmounting disk.")
+		log.Println("Phase 1/3: Unmounting disk.")
 		if err := app.UnmountDevice(os.Args[3]); err != nil {
 			log.Println(err)
 			if !strings.HasSuffix(os.Args[3], "debug.iso") {
 				os.Exit(1)
 			}
 		}
-		log.Println("Phase 2/2: Writing ISO to disk.")
+		log.Println("Phase 2/3: Writing ISO to disk.")
 		if len(os.Args) > 4 && os.Args[4] == "--use-system-dd" {
 			app.RunDd(os.Args[2], os.Args[3])
 		} else {
 			app.FlashFileToBlockDevice(os.Args[2], os.Args[3])
 		}
+		log.Println("Phase 3/3: Validating written image on disk.")
+		app.ValidateBlockDeviceContent(os.Args[2], os.Args[3])
 		return
 	}
 	debug := false
