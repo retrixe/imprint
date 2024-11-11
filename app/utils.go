@@ -1,6 +1,32 @@
 package app
 
-import "strconv"
+import (
+	"os"
+	"strconv"
+)
+
+type ConfigurationFlags struct {
+	UseSystemDd       bool
+	DisableValidation bool
+}
+
+func ParseCLIFlags() ([]string, ConfigurationFlags) {
+	args := []string{}
+	config := ConfigurationFlags{}
+	if len(os.Args) == 0 {
+		return args, config
+	}
+	for _, arg := range os.Args[1:] {
+		if arg == "--use-system-dd" {
+			config.UseSystemDd = true
+		} else if arg == "--disable-validation" {
+			config.DisableValidation = true
+		} else {
+			args = append(args, arg)
+		}
+	}
+	return args, config
+}
 
 func BytesToString(bytes int, binaryPowers bool) string {
 	i := ""

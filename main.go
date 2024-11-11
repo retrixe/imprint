@@ -51,25 +51,32 @@ func main() {
 		log.SetFlags(0)
 		log.SetOutput(os.Stderr)
 		log.SetPrefix("[flash] ")
-		if len(os.Args) < 4 {
-			println("Invalid usage: imprint flash <file> <destination> (--use-system-dd)")
+		args, flags := app.ParseCLIFlags()
+		if len(args) < 4 {
+			println("Invalid usage: imprint flash <file> <destination> (--use-system-dd) (--disable-validation)")
 			os.Exit(1)
 		}
-		log.Println("Phase 1/3: Unmounting disk.")
-		if err := app.UnmountDevice(os.Args[3]); err != nil {
+		totalPhases := "3"
+		if flags.DisableValidation {
+			totalPhases = "2"
+		}
+		log.Println("Phase 1/" + totalPhases + ": Unmounting disk.")
+		if err := app.UnmountDevice(args[1]); err != nil {
 			log.Println(err)
-			if !strings.HasSuffix(os.Args[3], "debug.iso") {
+			if !strings.HasSuffix(args[1], "debug.iso") {
 				os.Exit(1)
 			}
 		}
-		log.Println("Phase 2/3: Writing ISO to disk.")
-		if len(os.Args) > 4 && os.Args[4] == "--use-system-dd" {
-			app.RunDd(os.Args[2], os.Args[3])
+		log.Println("Phase 2/" + totalPhases + ": Writing ISO to disk.")
+		if flags.UseSystemDd {
+			app.RunDd(args[0], args[1])
 		} else {
-			app.FlashFileToBlockDevice(os.Args[2], os.Args[3])
+			app.FlashFileToBlockDevice(args[0], args[1])
 		}
-		log.Println("Phase 3/3: Validating written image on disk.")
-		app.ValidateBlockDeviceContent(os.Args[2], os.Args[3])
+		if flags.DisableValidation {
+			log.Println("Phase 3/" + totalPhases + ": Validating written image on disk.")
+			app.ValidateBlockDeviceContent(args[0], args[1])
+		}
 		return
 	}
 	debug := false
