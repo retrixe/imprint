@@ -49,6 +49,7 @@ const ProgressScreen = ({
 
   const isDone = progress === 'Done!'
   const isError = typeof progress === 'string' && !isDone
+  const inProgress = typeof progress === 'object'
   const progressPercent =
     !isError && !isDone
       ? JSBI.divide(
@@ -85,21 +86,21 @@ const ProgressScreen = ({
       </Modal>
       <Typography gutterBottom level='h3' color={isError ? 'danger' : undefined}>
         {isDone && 'Completed flashing ISO to disk!'}
-        {isError && 'Error during '}
-        {!isDone && 'Phase 1/1: Writing ISO to disk...'}
+        {isError && 'Error occurred while flashing ISO to disk!'}
+        {inProgress && 'Phase 1/1: Writing ISO to disk...'}
       </Typography>
       <LinearProgress
         sx={{ mb: '0.8em' }}
         color={isError ? 'danger' : undefined}
         determinate={!isError}
-        value={isError ? undefined : isDone ? 100 : JSBI.toNumber(progressPercent)}
+        value={inProgress ? JSBI.toNumber(progressPercent) : isDone ? 100 : undefined}
       />
       {!isDone && (
         <Typography level='title-lg' gutterBottom color={isError ? 'danger' : undefined}>
-          {isError || isDone
-            ? progress
-            : `${progressPercent.toString()}% \
-(${bytesToString(progress.bytes)} / ${bytesToString(progress.total)}) — ${progress.speed}`}
+          {inProgress
+            ? `${progressPercent.toString()}% \
+(${bytesToString(progress.bytes)} / ${bytesToString(progress.total)}) — ${progress.speed}`
+            : progress}
         </Typography>
       )}
       <Typography gutterBottom>
@@ -107,7 +108,7 @@ const ProgressScreen = ({
         <br />
         <strong>Target Disk:</strong> {targetDisk}
       </Typography>
-      {!isError && !isDone && (
+      {inProgress && (
         <Typography gutterBottom color='warning'>
           <strong>Note:</strong> Do not remove the external drive or shut down the computer during
           the write process.

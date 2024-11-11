@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"io"
+	"io/fs"
 	"log"
 	"os"
 	"os/exec"
@@ -44,52 +45,21 @@ func RunDd(iff string, of string) {
 	}
 }
 
-// FlashFileToBlockDevice is a re-implementation of dd
-// in Golang to work cross-platform on Windows as well.
+// FlashFileToBlockDevice is a re-implementation of dd to work cross-platform on Windows as well.
 func FlashFileToBlockDevice(iff string, of string) {
 	// References to use:
 	// https://stackoverflow.com/questions/21032426/low-level-disk-i-o-in-golang
 	// https://stackoverflow.com/questions/56512227/how-to-read-and-write-low-level-raw-disk-in-windows-and-go
 	quit := handleStopInput(func() { os.Exit(0) })
-	filePath, err := filepath.Abs(iff)
-	if err != nil {
-		log.Fatalln("Unable to resolve path to file.")
-	}
-	destPath, err := filepath.Abs(of)
-	if err != nil {
-		log.Fatalln("Unable to resolve path to dest.")
-	}
-	file, err := os.Open(filePath)
-	if err != nil && os.IsNotExist(err) {
-		log.Fatalln("This file does not exist!")
-	} else if err != nil {
-		log.Fatalln("An error occurred while opening the file.", err)
-	}
-	defer file.Close()
-	fileStat, err := file.Stat()
-	if err != nil {
-		log.Fatalln("An error occurred while opening the file.", err)
-	} else if fileStat.Mode().IsDir() {
-		log.Fatalln("The specified source file is a folder!")
-	}
-	dest, err := os.OpenFile(destPath, os.O_WRONLY|os.O_EXCL, os.ModePerm)
-	if err != nil {
-		log.Fatalln("An error occurred while opening the dest.", err)
-	}
-	defer dest.Close()
-	destStat, err := dest.Stat()
-	if err != nil {
-		log.Fatalln("An error occurred while opening the file.", err)
-	} else if destStat.Mode().IsDir() {
-		log.Fatalln("The specified destination is a directory!")
-	}
+	src := openFile(iff, os.O_RDONLY, 0, "file")
+	dest := openFile(of, os.O_WRONLY|os.O_EXCL, os.ModePerm, "destination")
 	bs := 4 * 1024 * 1024 // TODO: Allow configurability?
 	timer := time.NewTimer(time.Second)
 	startTime := time.Now().UnixMilli()
 	var total int
 	buf := make([]byte, bs)
 	for {
-		n1, err := file.Read(buf)
+		n1, err := src.Read(buf)
 		if err != nil {
 			if io.EOF == err {
 				break
@@ -116,7 +86,7 @@ func FlashFileToBlockDevice(iff string, of string) {
 		}
 	}
 	// t, _ := io.CopyBuffer(dest, file, buf); total = int(t)
-	err = dest.Sync()
+	err := dest.Sync()
 	if err != nil {
 		log.Fatalln("Failed to sync writes to disk!", err)
 	} else {
@@ -127,6 +97,27 @@ func FlashFileToBlockDevice(iff string, of string) {
 			BytesToString(int(float64(total)/timeDifference), false) + "/s")
 	}
 	quit <- true
+}
+
+func openFile(filePath string, flag int, mode fs.FileMode, name string) *os.File {
+	path, err := filepath.Abs(filePath)
+	if err != nil {
+		log.Fatalln("Unable to resolve path to " + name + "!")
+	}
+	file, err := os.OpenFile(path, flag, mode)
+	if err != nil && os.IsNotExist(err) {
+		log.Fatalln("This " + name + " does not exist!")
+	} else if err != nil {
+		log.Fatalln("An error occurred while opening "+name+"!", err)
+	}
+	defer file.Close()
+	fileStat, err := file.Stat()
+	if err != nil {
+		log.Fatalln("An error occurred while opening "+name+"!", err)
+	} else if fileStat.Mode().IsDir() {
+		log.Fatalln("The specified " + name + " is a directory!")
+	}
+	return file
 }
 
 func handleStopInput(cancel func()) chan bool {
