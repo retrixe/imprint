@@ -55,12 +55,14 @@ func main() {
 			println("Invalid usage: imprint flash <file> <destination> (--use-system-dd)")
 			os.Exit(1)
 		}
+		log.Println("Phase 1/2: Unmounting disk.")
 		if err := app.UnmountDevice(os.Args[3]); err != nil {
 			log.Println(err)
 			if !strings.HasSuffix(os.Args[3], "debug.iso") {
 				os.Exit(1)
 			}
 		}
+		log.Println("Phase 2/2: Writing ISO to disk.")
 		if len(os.Args) > 4 && os.Args[4] == "--use-system-dd" {
 			app.RunDd(os.Args[2], os.Args[3])
 		} else {
@@ -161,7 +163,8 @@ func main() {
 			return
 		}
 		// Show progress instantly.
-		w.Eval("setProgressReact({ bytes: 0, total: " + fileSizeStr + ", speed: '0 MB/s' })")
+		w.Eval("setProgressReact({ bytes: 0, total: " + fileSizeStr + ", speed: '0 MB/s', " +
+			"phase: 'Phase 0: Initiating flash process.' })")
 		go (func() {
 			result := "Done!"
 			for {
@@ -179,7 +182,8 @@ func main() {
 						w.Dispatch(func() {
 							w.Eval("setProgressReact({ bytes: " + strconv.Itoa(progress.Bytes) +
 								", total: " + fileSizeStr +
-								", speed: " + ParseToJsString(progress.Speed) + " })")
+								", speed: " + ParseToJsString(progress.Speed) +
+								", phase: " + ParseToJsString(progress.Phase) + " })")
 						})
 					}
 				} else {

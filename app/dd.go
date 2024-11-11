@@ -52,7 +52,9 @@ func FlashFileToBlockDevice(iff string, of string) {
 	// https://stackoverflow.com/questions/56512227/how-to-read-and-write-low-level-raw-disk-in-windows-and-go
 	quit := handleStopInput(func() { os.Exit(0) })
 	src := openFile(iff, os.O_RDONLY, 0, "file")
+	defer src.Close()
 	dest := openFile(of, os.O_WRONLY|os.O_EXCL, os.ModePerm, "destination")
+	defer dest.Close()
 	bs := 4 * 1024 * 1024 // TODO: Allow configurability?
 	timer := time.NewTimer(time.Second)
 	startTime := time.Now().UnixMilli()
@@ -104,18 +106,17 @@ func openFile(filePath string, flag int, mode fs.FileMode, name string) *os.File
 	if err != nil {
 		log.Fatalln("Unable to resolve path to " + name + "!")
 	}
+	fileStat, err := os.Stat(path)
+	if err != nil {
+		log.Fatalln("An error occurred while opening "+name+"!", err)
+	} else if fileStat.Mode().IsDir() {
+		log.Fatalln("The specified " + name + " is a directory!")
+	}
 	file, err := os.OpenFile(path, flag, mode)
 	if err != nil && os.IsNotExist(err) {
 		log.Fatalln("This " + name + " does not exist!")
 	} else if err != nil {
 		log.Fatalln("An error occurred while opening "+name+"!", err)
-	}
-	defer file.Close()
-	fileStat, err := file.Stat()
-	if err != nil {
-		log.Fatalln("An error occurred while opening "+name+"!", err)
-	} else if fileStat.Mode().IsDir() {
-		log.Fatalln("The specified " + name + " is a directory!")
 	}
 	return file
 }

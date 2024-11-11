@@ -87,7 +87,7 @@ const ProgressScreen = ({
       <Typography gutterBottom level='h3' color={isError ? 'danger' : undefined}>
         {isDone && 'Completed flashing ISO to disk!'}
         {isError && 'Error occurred while flashing ISO to disk!'}
-        {inProgress && 'Phase 1/1: Writing ISO to disk...'}
+        {inProgress && progress.phase}
       </Typography>
       <LinearProgress
         sx={{ mb: '0.8em' }}

@@ -18,6 +18,7 @@ declare global {
     bytes: number
     total: number
     speed: string
+    phase: string
   }
 } /* eslint-enable no-var */
 

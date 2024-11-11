@@ -14,8 +14,9 @@ import (
 // DdProgress is a struct containing progress of the dd operation.
 type DdProgress struct {
 	Bytes int
-	Error error
 	Speed string
+	Phase string
+	Error error
 }
 
 // DdError is a struct containing dd errors.
@@ -85,6 +86,7 @@ func CopyConvert(iff string, of string) (chan DdProgress, io.WriteCloser, error)
 	})()
 	// Read the output line by line.
 	go (func() {
+		phase := "Phase Unknown"
 		scanner := bufio.NewScanner(output)
 		scanner.Split(ScanCRLFLines)
 		for scanner.Scan() {
@@ -92,7 +94,14 @@ func CopyConvert(iff string, of string) (chan DdProgress, io.WriteCloser, error)
 			println(text)
 			lastLine = text
 			firstSpace := strings.Index(text, " ")
-			if firstSpace != -1 && strings.HasPrefix(text[firstSpace+1:], "bytes (") {
+			if strings.HasPrefix(text, "[flash] Phase") {
+				phase = text[firstSpace+1:]
+				channel <- DdProgress{
+					Bytes: 0,
+					Speed: "0 MB/s",
+					Phase: phase,
+				}
+			} else if firstSpace != -1 && strings.HasPrefix(text[firstSpace+1:], "bytes (") {
 				// TODO: Probably handle error, but we can't tell full dd behavior without seeing the code.
 				// Well, custom dd is the default now anyways.
 				bytes, _ := strconv.Atoi(text[:firstSpace])
@@ -104,6 +113,7 @@ func CopyConvert(iff string, of string) (chan DdProgress, io.WriteCloser, error)
 				channel <- DdProgress{
 					Bytes: bytes,
 					Speed: split[len(split)-1],
+					Phase: phase,
 				}
 				mutex.Unlock()
 			}
