@@ -47,7 +47,12 @@ const App = (): JSX.Element => {
             device={device ?? ''}
             file={file}
             progress={progress}
-            setProgress={setProgress}
+            onExit={() => {
+              setFile('')
+              setDevice(null)
+              setProgress(null)
+              globalThis.refreshDevices()
+            }}
           />
         )}
       </div>

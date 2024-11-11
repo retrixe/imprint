@@ -1,18 +1,52 @@
-import { Button, LinearProgress, Typography } from '@mui/joy'
+import {
+  Button,
+  DialogContent,
+  DialogTitle,
+  LinearProgress,
+  Modal,
+  ModalClose,
+  ModalDialog,
+  Typography,
+} from '@mui/joy'
 import JSBI from 'jsbi'
 import * as styles from './ProgressScreen.module.scss'
+import { useEffect, useState } from 'react'
+
+function bytesToString(bytes: number, binaryPowers = false): string {
+  const divisor = binaryPowers ? 1024 : 1000
+  const suffix = binaryPowers ? 'i' : ''
+
+  const kb = bytes / divisor
+  const mb = kb / divisor
+  const gb = mb / divisor
+  const tb = gb / divisor
+
+  if (tb >= 1) {
+    return `${tb.toFixed(1)} T${suffix}B`
+  } else if (gb >= 1) {
+    return `${gb.toFixed(1)} G${suffix}B`
+  } else if (mb >= 1) {
+    return `${mb.toFixed(1)} M${suffix}B`
+  } else if (kb >= 1) {
+    return `${kb.toFixed(1)} K${suffix}B`
+  } else {
+    return `${bytes}B`
+  }
+}
 
 const ProgressScreen = ({
   progress,
-  setProgress,
   device,
   file,
+  onExit,
 }: {
   progress: Progress | string
-  setProgress: React.Dispatch<React.SetStateAction<Progress | string | null>>
   device: string
   file: string
+  onExit: () => void
 }): JSX.Element => {
+  const [confirm, setConfirm] = useState(false)
+
   const isDone = progress === 'Done!'
   const isError = typeof progress === 'string' && !isDone
   const progressPercent =
@@ -26,12 +60,29 @@ const ProgressScreen = ({
   const sourceImage = file.replace('\\', '/').split('/').pop()
   const targetDisk = device.substr(device.indexOf(' ') + 1)
   const onDismiss = (): void => {
-    if (isError || isDone) setProgress(null)
-    // Urgent FIXME: Cancel flash
+    if (isError || isDone) onExit()
+    else setConfirm(true)
   }
+  useEffect(() => {
+    if (isDone || isError) setConfirm(false)
+  }, [isDone, isError])
 
   return (
     <>
+      <Modal open={confirm} onClose={() => setConfirm(false)}>
+        <ModalDialog color='danger'>
+          <ModalClose variant='soft' />
+          <DialogTitle>Do you want to cancel flashing?</DialogTitle>
+          <DialogContent>
+            This will render the device {device?.substr(device.indexOf(' ') + 1)} unusable.
+            <br />
+            You must reformat the device to use it again.
+          </DialogContent>
+          <Button color='danger' onClick={() => globalThis.cancelFlash()}>
+            Yes, I want to cancel
+          </Button>
+        </ModalDialog>
+      </Modal>
       <Typography gutterBottom level='h3' color={isError ? 'danger' : undefined}>
         {isDone && 'Completed flashing ISO to disk!'}
         {isError && 'Error during '}
@@ -46,14 +97,15 @@ const ProgressScreen = ({
       {!isDone && (
         <Typography level='title-lg' gutterBottom color={isError ? 'danger' : undefined}>
           {isError || isDone
-            ? progress // Urgent FIXME byte conversion...
-            : `${progressPercent.toString()}% (${progress.bytes} bytes / ${progress.total} bytes) — ${progress.speed}`}
+            ? progress
+            : `${progressPercent.toString()}% \
+(${bytesToString(progress.bytes)} / ${bytesToString(progress.total)}) — ${progress.speed}`}
         </Typography>
       )}
       <Typography gutterBottom>
-        <strong>Source Image: </strong> {sourceImage}
+        <strong>Source Image:</strong> {sourceImage}
         <br />
-        <strong>Target Disk: </strong> {targetDisk}
+        <strong>Target Disk:</strong> {targetDisk}
       </Typography>
       {!isError && !isDone && (
         <Typography gutterBottom color='warning'>
