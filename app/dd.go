@@ -116,13 +116,13 @@ func ValidateBlockDeviceContent(iff string, of string) {
 	for {
 		n1, err1 := src.Read(buf1)
 		n2, err2 := dest.Read(buf2)
-		if err1 == io.EOF && err2 == io.EOF {
+		if err1 == io.EOF {
 			break
-		} else if err1 != nil && err1 != io.EOF {
+		} else if err1 != nil {
 			log.Fatalln("Encountered error while validating device!", err1)
-		} else if err2 != nil && err2 != io.EOF {
+		} else if err2 != nil {
 			log.Fatalln("Encountered error while validating device!", err2)
-		} else if n2 != n1 || err1 != nil || err2 != nil || !bytes.Equal(buf1[:n1], buf2[:n2]) {
+		} else if n2 < n1 || !bytes.Equal(buf1[:n1], buf2[:n1]) {
 			log.Fatalln("Read/write mismatch! Validation of image failed. It is unsafe to boot this device.")
 		}
 		total += n1

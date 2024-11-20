@@ -18,7 +18,6 @@ import (
 	webview "github.com/webview/webview_go"
 )
 
-// FIXME: Validate written image.
 // TODO: Future support for flashing to an internal drive?
 
 const version = "1.0.0-alpha.2"
@@ -61,21 +60,21 @@ func main() {
 			totalPhases = "2"
 		}
 		log.Println("Phase 1/" + totalPhases + ": Unmounting disk.")
-		if err := app.UnmountDevice(args[1]); err != nil {
+		if err := app.UnmountDevice(args[2]); err != nil {
 			log.Println(err)
-			if !strings.HasSuffix(args[1], "debug.iso") {
+			if !strings.HasSuffix(args[2], "debug.iso") {
 				os.Exit(1)
 			}
 		}
 		log.Println("Phase 2/" + totalPhases + ": Writing ISO to disk.")
 		if flags.UseSystemDd {
-			app.RunDd(args[0], args[1])
+			app.RunDd(args[1], args[2])
 		} else {
-			app.FlashFileToBlockDevice(args[0], args[1])
+			app.FlashFileToBlockDevice(args[1], args[2])
 		}
-		if flags.DisableValidation {
+		if !flags.DisableValidation {
 			log.Println("Phase 3/" + totalPhases + ": Validating written image on disk.")
-			app.ValidateBlockDeviceContent(args[0], args[1])
+			app.ValidateBlockDeviceContent(args[1], args[2])
 		}
 		return
 	}
