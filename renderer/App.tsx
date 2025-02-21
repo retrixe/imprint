@@ -6,6 +6,7 @@ import ProgressScreen from './screens/ProgressScreen'
 
 // TODO: Experiment with lg size for the UI.
 const App = (): JSX.Element => {
+  // useColorScheme().setMode('dark')
   const [file, setFile] = useState('')
   const [device, setDevice] = useState<string | null>(null)
   const [devices, setDevices] = useState<string[]>([])

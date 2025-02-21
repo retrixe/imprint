@@ -101,13 +101,13 @@ func main() {
 			return
 		}
 		if os.Getenv("DEBUG") == "true" {
-			homedir, err := os.UserHomeDir()
+			workdir, err := os.Getwd()
 			if err == nil {
 				devices = append(devices, app.Device{
-					Name:  filepath.Join(homedir, "debug.iso"),
-					Model: "Write to debug ISO in home dir",
+					Name:  filepath.Join(workdir, "debug.iso"),
+					Model: "Write to debug ISO",
 					Bytes: 10000000000,
-					Size:  "10 TB",
+					Size:  "Virtual",
 				})
 			}
 		}
