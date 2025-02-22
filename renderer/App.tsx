@@ -1,11 +1,11 @@
 import { DialogContent, DialogTitle, Modal, ModalClose, ModalDialog } from '@mui/joy'
 import { useEffect, useState } from 'react'
-import * as styles from './App.module.scss'
+import styles from './App.module.scss'
 import MainScreen from './screens/MainScreen'
 import ProgressScreen from './screens/ProgressScreen'
 
 // TODO: Experiment with lg size for the UI.
-const App = (): JSX.Element => {
+const App = (): React.JSX.Element => {
   // useColorScheme().setMode('dark')
   const [file, setFile] = useState('')
   const [device, setDevice] = useState<string | null>(null)

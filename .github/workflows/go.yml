@@ -49,7 +49,7 @@ jobs:
       run: yarn lint && go test -v .
     
     - name: Upload Build Artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: imprint-${{ runner.os }}
         path: imprint*

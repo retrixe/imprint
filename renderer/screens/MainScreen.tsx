@@ -10,7 +10,7 @@ import {
   Textarea,
   Typography,
 } from '@mui/joy'
-import * as styles from './MainScreen.module.scss'
+import styles from './MainScreen.module.scss'
 import { useState } from 'react'
 
 const MainScreen = ({
@@ -27,7 +27,7 @@ const MainScreen = ({
   setDevice: React.Dispatch<React.SetStateAction<string | null>>
   devices: string[]
   setDialog: React.Dispatch<React.SetStateAction<string>>
-}): JSX.Element => {
+}): React.JSX.Element => {
   const [confirm, setConfirm] = useState(false)
   const onFileInputChange: React.ChangeEventHandler<HTMLTextAreaElement> = event =>
     setFile(event.target.value.replace(/\n/g, ''))
@@ -49,7 +49,7 @@ const MainScreen = ({
           <ModalClose variant='soft' />
           <DialogTitle>Do you want to continue?</DialogTitle>
           <DialogContent>
-            This operation will WIPE ALL DATA from: {device?.substr(device.indexOf(' ') + 1)}.
+            This operation will WIPE ALL DATA from: {device?.substring(device.indexOf(' ') + 1)}.
           </DialogContent>
           <Button color='danger' onClick={onFlashConfirm}>
             Proceed
@@ -83,7 +83,7 @@ const MainScreen = ({
         >
           {devices.map(device => (
             <Option key={device} value={device}>
-              {device.substr(device.indexOf(' ') + 1)}
+              {device.substring(device.indexOf(' ') + 1)}
             </Option>
           ))}
         </Select>

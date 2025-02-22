@@ -9,7 +9,7 @@ import {
   Typography,
 } from '@mui/joy'
 import JSBI from 'jsbi'
-import * as styles from './ProgressScreen.module.scss'
+import styles from './ProgressScreen.module.scss'
 import { useEffect, useState } from 'react'
 
 function bytesToString(bytes: number, binaryPowers = false): string {
@@ -44,7 +44,7 @@ const ProgressScreen = ({
   device: string
   file: string
   onExit: () => void
-}): JSX.Element => {
+}): React.JSX.Element => {
   const [confirm, setConfirm] = useState(false)
 
   const isDone = progress === 'Done!'
@@ -59,7 +59,7 @@ const ProgressScreen = ({
       : JSBI.BigInt(0)
 
   const sourceImage = file.replace('\\', '/').split('/').pop()
-  const targetDisk = device.substr(device.indexOf(' ') + 1)
+  const targetDisk = device.substring(device.indexOf(' ') + 1)
   const onDismiss = (): void => {
     if (isError || isDone) onExit()
     else setConfirm(true)
@@ -75,7 +75,7 @@ const ProgressScreen = ({
           <ModalClose variant='soft' />
           <DialogTitle>Do you want to cancel flashing?</DialogTitle>
           <DialogContent>
-            This will render the device {device?.substr(device.indexOf(' ') + 1)} unusable.
+            This will render the device {device.substring(device.indexOf(' ') + 1)} unusable.
             <br />
             You must reformat the device to use it again.
           </DialogContent>
