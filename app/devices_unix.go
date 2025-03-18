@@ -20,11 +20,16 @@ type Device struct {
 
 // GetDevices returns the list of USB devices available to read/write from.
 func GetDevices() ([]Device, error) {
-	res, err := exec.Command("lsblk", "-b", "-o", "KNAME,TYPE,SIZE,MODEL").Output()
+	// TODO: -J = --json (available since Ubuntu 16.04)
+	// -d = --nodeps
+	// -b = --bytes
+	// -o = --output
+	res, err := exec.Command("lsblk", "-d", "-b", "-o", "KNAME,TYPE,RM,SIZE,MODEL").Output()
 	if err != nil {
 		return nil, err
 	}
 
+	// TODO: This would be better as an /etc/fstab check, to be honest... This is unreliable.
 	bootDevices, err := exec.Command("df", "/", "/home").Output()
 	if err != nil {
 		return nil, err
@@ -41,18 +46,19 @@ func GetDevices() ([]Device, error) {
 
 	for _, file := range files {
 		disk := strings.Fields(file)
-		if disk[1] == "disk" && !strings.HasPrefix(disk[0], "zram") &&
+		if disk[1] == "disk" && disk[2] == "1" &&
+			// !strings.HasPrefix(disk[0], "zram") && -- zram isn't removable anyway
 			!strings.HasPrefix(rootPart, "/dev/"+disk[0]) &&
 			!strings.HasPrefix(homePart, "/dev/"+disk[0]) {
-			bytes, _ := strconv.Atoi(disk[2])
+			bytes, _ := strconv.Atoi(disk[3])
 			device := Device{
 				Name:  "/dev/" + disk[0],
 				Size:  BytesToString(bytes, false),
 				Bytes: bytes,
 			}
 
-			if len(disk) >= 4 && disk[3] != "" {
-				device.Model = disk[3]
+			if len(disk) >= 4 {
+				device.Model = strings.TrimSpace(strings.Join(disk[4:], " "))
 			}
 
 			disks = append(disks, device)
