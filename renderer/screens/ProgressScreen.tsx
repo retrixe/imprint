@@ -9,7 +9,7 @@ import {
   Typography,
 } from '@mui/joy'
 import JSBI from 'jsbi'
-import styles from './ProgressScreen.module.scss'
+import * as styles from './ProgressScreen.module.scss'
 import { useEffect, useState } from 'react'
 
 function bytesToString(bytes: number, binaryPowers = false): string {

@@ -1,6 +1,6 @@
 import { DialogContent, DialogTitle, Modal, ModalClose, ModalDialog } from '@mui/joy'
 import { useEffect, useState } from 'react'
-import styles from './App.module.scss'
+import * as styles from './App.module.scss'
 import MainScreen from './screens/MainScreen'
 import ProgressScreen from './screens/ProgressScreen'
 
