@@ -165,10 +165,12 @@ func openFile(filePath string, flag int, mode fs.FileMode, name string) *os.File
 	return file
 }
 
+var stdin io.Reader = os.Stdin // Mock
+
 func handleStopInput(cancel func()) chan bool {
 	quit := make(chan bool, 1)
 	go (func() {
-		reader := bufio.NewReader(os.Stdin)
+		reader := bufio.NewReader(stdin)
 		for {
 			select {
 			case <-quit:

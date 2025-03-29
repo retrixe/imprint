@@ -8,16 +8,21 @@ import (
 	"strings"
 )
 
+// Mocks
+var osOpen = os.Open
+var osGeteuid = os.Geteuid
+var runtimeGOOS = runtime.GOOS
+
 // IsElevated returns if the application is running with elevated privileges.
 func IsElevated() bool {
-	if runtime.GOOS == "windows" { // https://stackoverflow.com/a/59147866
-		f, err := os.Open("\\\\.\\PHYSICALDRIVE0")
+	if runtimeGOOS == "windows" { // https://stackoverflow.com/a/59147866
+		f, err := osOpen("\\\\.\\PHYSICALDRIVE0")
 		if f != nil {
 			defer f.Close()
 		}
 		return err == nil
 	}
-	return os.Geteuid() == 0
+	return osGeteuid() == 0
 }
 
 // ErrPkexecNotFound is returned when `pkexec` (needed on Linux, BSD and the like) is not found.
