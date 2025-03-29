@@ -12,19 +12,19 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-latest, windows-latest]
+        os: [ubuntu-22.04, macos-latest, windows-latest]
     steps:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v4
 
+    - name: Enable Corepack
+      run: npm install --global --force corepack && corepack enable
+
     - name: Set up latest Node.js
-      uses: actions/setup-node@feature/corepack
+      uses: actions/setup-node@v4
       with:
         cache: 'yarn'
         node-version: latest
-
-    - name: Enable Corepack
-      run: npm install -g corepack
 
     - name: Set up Go 1.22
       uses: actions/setup-go@v4
@@ -37,7 +37,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install --no-install-recommends libwebkit2gtk-4.0-dev
-      if: ${{ success() && matrix.os == 'ubuntu-20.04' }}
+      if: ${{ success() && matrix.os == 'ubuntu-22.04' }}
 
     - name: Get dependencies
       run: |
