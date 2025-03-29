@@ -1,6 +1,6 @@
 module github.com/retrixe/imprint
 
-go 1.19
+go 1.22
 
 require (
 	github.com/sqweek/dialog v0.0.0-20240226140203-065105509627
