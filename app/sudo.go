@@ -6,23 +6,20 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+
+	"github.com/retrixe/imprint/app/platform"
 )
 
-// Mocks
-var osOpen = os.Open
-var osGeteuid = os.Geteuid
-var runtimeGOOS = runtime.GOOS
-
 // IsElevated returns if the application is running with elevated privileges.
-func IsElevated() bool {
-	if runtimeGOOS == "windows" { // https://stackoverflow.com/a/59147866
-		f, err := osOpen("\\\\.\\PHYSICALDRIVE0")
+func IsElevated(platform platform.Platform) bool {
+	if platform.RuntimeGOOS() == "windows" { // https://stackoverflow.com/a/59147866
+		f, err := platform.OsOpen("\\\\.\\PHYSICALDRIVE0")
 		if f != nil {
 			defer f.Close()
 		}
 		return err == nil
 	}
-	return osGeteuid() == 0
+	return platform.OsGeteuid() == 0
 }
 
 // ErrPkexecNotFound is returned when `pkexec` (needed on Linux, BSD and the like) is not found.
@@ -38,7 +35,7 @@ var ErrWindowsNoOp = errors.New(
 
 // ElevatedCommand executes a command with elevated privileges.
 func ElevatedCommand(name string, arg ...string) (*exec.Cmd, error) {
-	if IsElevated() {
+	if IsElevated(platform.System) {
 		return exec.Command(name, arg...), nil
 	} else if runtime.GOOS == "windows" {
 		// https://stackoverflow.com/questions/31558066/how-to-ask-for-administer-privileges-on-windows-with-go
