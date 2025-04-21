@@ -4,7 +4,6 @@ import (
 	"errors"
 	"os"
 	"os/exec"
-	"runtime"
 	"strings"
 
 	"github.com/retrixe/imprint/app/platform"
@@ -34,13 +33,13 @@ var ErrWindowsNoOp = errors.New(
 )
 
 // ElevatedCommand executes a command with elevated privileges.
-func ElevatedCommand(name string, arg ...string) (*exec.Cmd, error) {
-	if IsElevated(platform.System) {
+func ElevatedCommand(platform platform.Platform, name string, arg ...string) (*exec.Cmd, error) {
+	if IsElevated(platform) {
 		return exec.Command(name, arg...), nil
-	} else if runtime.GOOS == "windows" {
+	} else if platform.RuntimeGOOS() == "windows" {
 		// https://stackoverflow.com/questions/31558066/how-to-ask-for-administer-privileges-on-windows-with-go
 		return nil, ErrWindowsNoOp
-	} else if runtime.GOOS == "darwin" {
+	} else if platform.RuntimeGOOS() == "darwin" {
 		return elevatedMacCommand(name, arg...)
 	}
 	return elevatedLinuxCommand(name, arg...)

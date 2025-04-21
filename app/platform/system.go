@@ -2,6 +2,7 @@ package platform
 
 import (
 	"os"
+	"os/exec"
 	"runtime"
 )
 
@@ -19,4 +20,8 @@ func (p SystemPlatform) OsGeteuid() int {
 
 func (p SystemPlatform) RuntimeGOOS() string {
 	return runtime.GOOS
+}
+
+func (p SystemPlatform) ExecCommand(name string, arg ...string) *exec.Cmd {
+	return exec.Command(name, arg...)
 }
