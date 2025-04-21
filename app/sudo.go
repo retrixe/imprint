@@ -5,12 +5,10 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-
-	"github.com/retrixe/imprint/app/platform"
 )
 
 // IsElevated returns if the application is running with elevated privileges.
-func IsElevated(platform platform.Platform) bool {
+func IsElevated(platform Platform) bool {
 	if platform.RuntimeGOOS() == "windows" { // https://stackoverflow.com/a/59147866
 		f, err := platform.OsOpen("\\\\.\\PHYSICALDRIVE0")
 		if f != nil {
@@ -33,22 +31,22 @@ var ErrWindowsNoOp = errors.New(
 )
 
 // ElevatedCommand executes a command with elevated privileges.
-func ElevatedCommand(platform platform.Platform, name string, arg ...string) (*exec.Cmd, error) {
+func ElevatedCommand(platform Platform, name string, arg ...string) (*exec.Cmd, error) {
 	if IsElevated(platform) {
-		return exec.Command(name, arg...), nil
+		return platform.ExecCommand(name, arg...), nil
 	} else if platform.RuntimeGOOS() == "windows" {
 		// https://stackoverflow.com/questions/31558066/how-to-ask-for-administer-privileges-on-windows-with-go
 		return nil, ErrWindowsNoOp
 	} else if platform.RuntimeGOOS() == "darwin" {
-		return elevatedMacCommand(name, arg...)
+		return elevatedMacCommand(platform, name, arg...)
 	}
-	return elevatedLinuxCommand(name, arg...)
+	return elevatedLinuxCommand(platform, name, arg...)
 }
 
-func elevatedLinuxCommand(name string, arg ...string) (*exec.Cmd, error) {
+func elevatedLinuxCommand(platform Platform, name string, arg ...string) (*exec.Cmd, error) {
 	// We used to prefer gksudo over pkexec since it enabled a better prompt.
 	// However, gksudo cannot run multiple commands concurrently.
-	pkexec, err := exec.LookPath("pkexec")
+	pkexec, err := platform.ExecLookPath("pkexec")
 	if err != nil {
 		return nil, ErrPkexecNotFound
 	}
@@ -62,12 +60,12 @@ func elevatedLinuxCommand(name string, arg ...string) (*exec.Cmd, error) {
 	display := "DISPLAY=" + os.Getenv("DISPLAY")
 	xauthority := "XAUTHORITY=" + os.Getenv("XAUTHORITY")
 	args := []string{"--disable-internal-agent", "env", display, xauthority, name}
-	cmd := exec.Command(pkexec, append(args, arg...)...)
+	cmd := platform.ExecCommand(pkexec, append(args, arg...)...)
 	return cmd, nil
 }
 
-func elevatedMacCommand(name string, args ...string) (*exec.Cmd, error) {
-	osascript, err := exec.LookPath("osascript")
+func elevatedMacCommand(platform Platform, name string, args ...string) (*exec.Cmd, error) {
+	osascript, err := platform.ExecLookPath("osascript")
 	if err != nil {
 		return nil, ErrOsascriptNotFound
 	}
@@ -75,7 +73,7 @@ func elevatedMacCommand(name string, args ...string) (*exec.Cmd, error) {
 	for _, arg := range args {
 		command += ` \"` + strings.ReplaceAll(arg, `"`, `\\\"`) + `\"`
 	}
-	cmd := exec.Command(
+	cmd := platform.ExecCommand(
 		osascript,
 		"-e",
 		`do shell script "`+command+`" with administrator privileges`,

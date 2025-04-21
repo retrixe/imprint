@@ -1,10 +1,18 @@
-package platform
+package app
 
 import (
 	"os"
 	"os/exec"
 	"runtime"
 )
+
+type Platform interface {
+	OsOpen(name string) (*os.File, error)
+	OsGeteuid() int
+	RuntimeGOOS() string
+	ExecCommand(name string, arg ...string) *exec.Cmd
+	ExecLookPath(file string) (string, error)
+}
 
 type SystemPlatform struct{}
 
@@ -24,4 +32,8 @@ func (p SystemPlatform) RuntimeGOOS() string {
 
 func (p SystemPlatform) ExecCommand(name string, arg ...string) *exec.Cmd {
 	return exec.Command(name, arg...)
+}
+
+func (p SystemPlatform) ExecLookPath(file string) (string, error) {
+	return exec.LookPath(file)
 }
