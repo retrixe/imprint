@@ -36,7 +36,7 @@ func RunDd(iff string, of string) {
 	if err != nil {
 		panic(err)
 	}
-	quit := handleStopInput(func() { cmd.Process.Kill() })
+	quit := handleStopInput(os.Stdin, func() { cmd.Process.Kill() })
 	err = cmd.Wait()
 	quit <- true
 	if err != nil && cmd.ProcessState.ExitCode() != 0 {
@@ -51,7 +51,7 @@ func FlashFileToBlockDevice(iff string, of string) {
 	// References to use:
 	// https://stackoverflow.com/questions/21032426/low-level-disk-i-o-in-golang
 	// https://stackoverflow.com/questions/56512227/how-to-read-and-write-low-level-raw-disk-in-windows-and-go
-	quit := handleStopInput(func() { os.Exit(0) })
+	quit := handleStopInput(os.Stdin, func() { os.Exit(0) })
 	src := openFile(iff, os.O_RDONLY, 0, "file")
 	defer src.Close()
 	dest := openFile(of, os.O_WRONLY|os.O_EXCL, os.ModePerm, "destination")
@@ -104,7 +104,7 @@ func FlashFileToBlockDevice(iff string, of string) {
 
 // ValidateBlockDeviceContent checks if the block device contents match the given file.
 func ValidateBlockDeviceContent(iff string, of string) {
-	quit := handleStopInput(func() { os.Exit(0) })
+	quit := handleStopInput(os.Stdin, func() { os.Exit(0) })
 	src := openFile(iff, os.O_RDONLY, 0, "file")
 	dest := openFile(of, os.O_RDONLY|os.O_EXCL, os.ModePerm, "destination")
 	bs := 4 * 1024 * 1024 // TODO: Allow configurability?
@@ -165,12 +165,10 @@ func openFile(filePath string, flag int, mode fs.FileMode, name string) *os.File
 	return file
 }
 
-var stdin io.Reader = os.Stdin // Mock
-
-func handleStopInput(cancel func()) chan bool {
+func handleStopInput(input io.Reader, cancel func()) chan bool {
 	quit := make(chan bool, 1)
 	go (func() {
-		reader := bufio.NewReader(stdin)
+		reader := bufio.NewReader(input)
 		for {
 			select {
 			case <-quit:
