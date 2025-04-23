@@ -74,7 +74,10 @@ func main() {
 		}
 		if !flags.DisableValidation {
 			log.Println("Phase 3/" + totalPhases + ": Validating written image on disk.")
-			app.ValidateBlockDeviceContent(args[1], args[2])
+			err := app.ValidateBlockDeviceContent(args[1], args[2])
+			if err != "" {
+				log.Fatalln(err)
+			}
 		}
 		return
 	}

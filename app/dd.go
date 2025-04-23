@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"log"
@@ -103,7 +104,7 @@ func FlashFileToBlockDevice(iff string, of string) {
 }
 
 // ValidateBlockDeviceContent checks if the block device contents match the given file.
-func ValidateBlockDeviceContent(iff string, of string) {
+func ValidateBlockDeviceContent(iff string, of string) string {
 	quit := handleStopInput(os.Stdin, func() { os.Exit(0) })
 	src := openFile(iff, os.O_RDONLY, 0, "file")
 	dest := openFile(of, os.O_RDONLY|os.O_EXCL, os.ModePerm, "destination")
@@ -119,11 +120,11 @@ func ValidateBlockDeviceContent(iff string, of string) {
 		if err1 == io.EOF {
 			break
 		} else if err1 != nil {
-			log.Fatalln("Encountered error while validating device!", err1)
+			return fmt.Sprint("Encountered error while validating device! ", err1)
 		} else if err2 != nil {
-			log.Fatalln("Encountered error while validating device!", err2)
+			return fmt.Sprint("Encountered error while validating device! ", err2)
 		} else if n2 < n1 || !bytes.Equal(buf1[:n1], buf2[:n1]) {
-			log.Fatalln("Read/write mismatch! Validation of image failed. It is unsafe to boot this device.")
+			return "Read/write mismatch! Validation of image failed. It is unsafe to boot this device."
 		}
 		total += n1
 		if len(timer.C) > 0 {
@@ -143,6 +144,7 @@ func ValidateBlockDeviceContent(iff string, of string) {
 		strconv.FormatFloat(timeDifference, 'f', 3, 64) + " s, " +
 		BytesToString(int(float64(total)/timeDifference), false) + "/s")
 	quit <- true
+	return ""
 }
 
 func openFile(filePath string, flag int, mode fs.FileMode, name string) *os.File {

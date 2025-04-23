@@ -46,30 +46,35 @@ func GenerateTempFile(t *testing.T, suffix string, prefill bool) (*os.File, []by
 	return sample, sampleSum
 }
 
+func ChecksumFile(t *testing.T, file string) ([]byte, error) {
+	t.Helper()
+	fileHash := sha256.New()
+	f, err := os.Open(file)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	_, err = io.Copy(fileHash, f)
+	if err != nil {
+		return nil, err
+	}
+	return fileHash.Sum(nil), nil
+}
+
 func TestRunDd(t *testing.T) {
 	sample, sampleSum := GenerateTempFile(t, "sample", true)
 	dest, _ := GenerateTempFile(t, "dest", false)
 	t.Run("dd executes correctly", func(t *testing.T) {
 		defer (func() {
 			if err := recover(); err != nil {
-				t.Fatalf("RunDd failed: %v", err)
+				t.Errorf("RunDd failed: %v", err)
 			}
 		})()
 		RunDd(sample.Name(), dest.Name())
-		// Check if destination file checksum matches the source file
-		destHash := sha256.New()
-		destFile, err := os.Open(dest.Name())
-		if err != nil {
-			t.Fatalf("Failed to open dest file: %v", err)
-		}
-		defer destFile.Close()
-		_, err = io.Copy(destHash, destFile)
-		if err != nil {
-			t.Fatalf("Failed to copy dest file: %v", err)
-		}
-		destSum := destHash.Sum(nil)
-		if !bytes.Equal(sampleSum, destSum) {
-			t.Fatalf("Checksum mismatch: expected %x, got %x", sampleSum, destSum)
+		if checksum, err := ChecksumFile(t, dest.Name()); err != nil {
+			t.Errorf("Failed to generate checksum for dest: %v", err)
+		} else if !bytes.Equal(sampleSum, checksum) {
+			t.Errorf("Checksum mismatch: expected %x, got %x", sampleSum, checksum)
 		}
 	})
 }
@@ -80,45 +85,42 @@ func TestFlashAndValidation(t *testing.T) {
 	t.Run("FlashFileToBlockDevice executes correctly", func(t *testing.T) {
 		defer (func() {
 			if err := recover(); err != nil {
-				t.Fatalf("FlashFileToBlockDevice failed: %v", err)
+				t.Errorf("FlashFileToBlockDevice failed: %v", err)
 			}
 		})()
 		FlashFileToBlockDevice(sample.Name(), dest.Name())
-		// Check if destination file checksum matches the source file
-		destHash := sha256.New()
-		destFile, err := os.Open(dest.Name())
-		if err != nil {
-			t.Fatalf("Failed to open dest file: %v", err)
-		}
-		defer destFile.Close()
-		_, err = io.Copy(destHash, destFile)
-		if err != nil {
-			t.Fatalf("Failed to copy dest file: %v", err)
-		}
-		destSum := destHash.Sum(nil)
-		if !bytes.Equal(sampleSum, destSum) {
-			t.Fatalf("Checksum mismatch: expected %x, got %x", sampleSum, destSum)
+		if checksum, err := ChecksumFile(t, dest.Name()); err != nil {
+			t.Errorf("Failed to generate checksum for dest: %v", err)
+		} else if !bytes.Equal(sampleSum, checksum) {
+			t.Errorf("Checksum mismatch: expected %x, got %x", sampleSum, checksum)
 		}
 	})
 	t.Run("ValidateBlockDeviceContent executes correctly", func(t *testing.T) {
 		defer (func() {
 			if err := recover(); err != nil {
-				t.Fatalf("Validation failed: %v", err)
+				t.Errorf("Validation failed: %v", err)
 			}
 		})()
-		ValidateBlockDeviceContent(sample.Name(), dest.Name())
+		err := ValidateBlockDeviceContent(sample.Name(), dest.Name())
+		if err != "" {
+			t.Errorf("Validation failed: %v", err)
+		}
 	})
-	/* t.Run("ValidateBlockDeviceContent fails if data corrupted", func(t *testing.T) {
+	t.Run("ValidateBlockDeviceContent fails if data corrupted", func(t *testing.T) {
 		// Simulate data corruption by truncating the destination file
 		err := os.Truncate(dest.Name(), 127*1024*1024) // Truncate to 127MB
 		if err != nil {
-			t.Fatalf("Failed to truncate dest file: %v", err)
+			t.Errorf("Failed to truncate dest file: %v", err)
 		}
 		// ValidateBlockDeviceContent should fail
 		defer recover()
-		ValidateBlockDeviceContent(sample.Name(), dest.Name())
-		t.Errorf("Validation should have failed due to data corruption")
-	}) */
+		errStr := ValidateBlockDeviceContent(sample.Name(), dest.Name())
+		if errStr == "" {
+			t.Errorf("Validation should have failed due to data corruption")
+		} else if errStr != "Read/write mismatch! Validation of image failed. It is unsafe to boot this device." {
+			t.Errorf("Unexpected validation error: %v", errStr)
+		}
+	})
 }
 
 func TestHandleStopInput(t *testing.T) {
