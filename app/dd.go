@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,8 +15,27 @@ import (
 	"time"
 )
 
-// ErrNotBlockDevice is returned when the specified device is not a block device.
-var ErrNotBlockDevice = errors.New("specified device is not a block device")
+// ErrDeviceValidationFailed is returned when the image on the device is corrupt
+var ErrDeviceValidationFailed = errors.New(
+	"read/write mismatch, validation of image on device failed")
+
+// ErrReadWriteMismatch is returned if written bytes are not the same as bytes as read.
+// Typically caused by target device being too small.
+var ErrReadWriteMismatch = errors.New("mismatch between bytes read and written")
+
+// IsDirectoryError is returned if a path that was passed is a directory, but a file was expected.
+type IsDirectoryError struct{ Name string }
+
+func (e *IsDirectoryError) Error() string {
+	return fmt.Sprintf("the specified file %s is a directory!", e.Name)
+}
+
+// NotExistsError is returned if a path that was passed does not point to a valid file or folder.
+type NotExistsError struct{ Name string }
+
+func (e *NotExistsError) Error() string {
+	return fmt.Sprintf("the specified file %s does not exist!", e.Name)
+}
 
 // RunDd is a wrapper around the `dd` command. This wrapper behaves
 // identically to dd, but accepts stdin input "stop\n".
@@ -48,14 +66,20 @@ func RunDd(iff string, of string) {
 }
 
 // FlashFileToBlockDevice is a re-implementation of dd to work cross-platform on Windows as well.
-func FlashFileToBlockDevice(iff string, of string) {
+func FlashFileToBlockDevice(iff string, of string) error {
 	// References to use:
 	// https://stackoverflow.com/questions/21032426/low-level-disk-i-o-in-golang
 	// https://stackoverflow.com/questions/56512227/how-to-read-and-write-low-level-raw-disk-in-windows-and-go
 	quit := handleStopInput(os.Stdin, func() { os.Exit(0) })
-	src := openFile(iff, os.O_RDONLY, 0, "file")
+	src, err := openFile(iff, os.O_RDONLY, 0, "file")
+	if err != nil {
+		return err
+	}
 	defer src.Close()
-	dest := openFile(of, os.O_WRONLY|os.O_EXCL, os.ModePerm, "destination")
+	dest, err := openFile(of, os.O_WRONLY|os.O_EXCL, os.ModePerm, "destination")
+	if err != nil {
+		return err
+	}
 	defer dest.Close()
 	bs := 4 * 1024 * 1024 // TODO: Allow configurability?
 	timer := time.NewTimer(time.Second)
@@ -68,14 +92,14 @@ func FlashFileToBlockDevice(iff string, of string) {
 			if io.EOF == err {
 				break
 			} else {
-				log.Fatalln("Encountered error while reading file!", err)
+				return fmt.Errorf("encountered error while reading file! %w", err)
 			}
 		}
 		n2, err := dest.Write(buf[:n1])
 		if err != nil {
-			log.Fatalln("Encountered error while writing to dest!", err)
+			return fmt.Errorf("encountered error while writing to dest! %w", err)
 		} else if n2 != n1 {
-			log.Fatalln("Read/write mismatch! Is the dest too small!")
+			return ErrReadWriteMismatch
 		}
 		total += n1
 		if len(timer.C) > 0 {
@@ -90,9 +114,9 @@ func FlashFileToBlockDevice(iff string, of string) {
 		}
 	}
 	// t, _ := io.CopyBuffer(dest, file, buf); total = int(t)
-	err := dest.Sync()
+	err = dest.Sync()
 	if err != nil {
-		log.Fatalln("Failed to sync writes to disk!", err)
+		return fmt.Errorf("failed to sync writes to disk! %w", err)
 	} else {
 		timeDifference := float64(time.Now().UnixMilli()-startTime) / 1000
 		println(strconv.Itoa(total) + " bytes " +
@@ -101,13 +125,21 @@ func FlashFileToBlockDevice(iff string, of string) {
 			BytesToString(int(float64(total)/timeDifference), false) + "/s")
 	}
 	quit <- true
+	return nil
 }
 
 // ValidateBlockDeviceContent checks if the block device contents match the given file.
-func ValidateBlockDeviceContent(iff string, of string) string {
+func ValidateBlockDeviceContent(iff string, of string) error {
 	quit := handleStopInput(os.Stdin, func() { os.Exit(0) })
-	src := openFile(iff, os.O_RDONLY, 0, "file")
-	dest := openFile(of, os.O_RDONLY|os.O_EXCL, os.ModePerm, "destination")
+	src, err := openFile(iff, os.O_RDONLY, 0, "file")
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+	dest, err := openFile(of, os.O_RDONLY|os.O_EXCL, os.ModePerm, "destination")
+	if err != nil {
+		return err
+	}
 	bs := 4 * 1024 * 1024 // TODO: Allow configurability?
 	timer := time.NewTimer(time.Second)
 	startTime := time.Now().UnixMilli()
@@ -120,11 +152,11 @@ func ValidateBlockDeviceContent(iff string, of string) string {
 		if err1 == io.EOF {
 			break
 		} else if err1 != nil {
-			return fmt.Sprint("Encountered error while validating device! ", err1)
+			return fmt.Errorf("encountered error while validating device! %w", err1)
 		} else if err2 != nil {
-			return fmt.Sprint("Encountered error while validating device! ", err2)
+			return fmt.Errorf("encountered error while validating device! %w", err2)
 		} else if n2 < n1 || !bytes.Equal(buf1[:n1], buf2[:n1]) {
-			return "Read/write mismatch! Validation of image failed. It is unsafe to boot this device."
+			return ErrDeviceValidationFailed
 		}
 		total += n1
 		if len(timer.C) > 0 {
@@ -144,27 +176,27 @@ func ValidateBlockDeviceContent(iff string, of string) string {
 		strconv.FormatFloat(timeDifference, 'f', 3, 64) + " s, " +
 		BytesToString(int(float64(total)/timeDifference), false) + "/s")
 	quit <- true
-	return ""
+	return nil
 }
 
-func openFile(filePath string, flag int, mode fs.FileMode, name string) *os.File {
+func openFile(filePath string, flag int, mode fs.FileMode, name string) (*os.File, error) {
 	path, err := filepath.Abs(filePath)
 	if err != nil {
-		log.Fatalln("Unable to resolve path to " + name + "!")
+		return nil, fmt.Errorf("unable to resolve path to %s! %w", name, err)
 	}
 	fileStat, err := os.Stat(path)
 	if err != nil {
-		log.Fatalln("An error occurred while opening "+name+"!", err)
+		return nil, fmt.Errorf("an error occurred while opening %s! %w", name, err)
 	} else if fileStat.Mode().IsDir() {
-		log.Fatalln("The specified " + name + " is a directory!")
+		return nil, &IsDirectoryError{Name: name}
 	}
 	file, err := os.OpenFile(path, flag, mode)
 	if err != nil && os.IsNotExist(err) {
-		log.Fatalln("This " + name + " does not exist!")
+		return nil, &NotExistsError{Name: name}
 	} else if err != nil {
-		log.Fatalln("An error occurred while opening "+name+"!", err)
+		return nil, fmt.Errorf("an error occurred while opening %s! %w", name, err)
 	}
-	return file
+	return file, nil
 }
 
 func handleStopInput(input io.Reader, cancel func()) chan bool {

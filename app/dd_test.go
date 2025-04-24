@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
+	"errors"
 	"io"
 	"os"
 	"sync/atomic"
@@ -83,13 +84,10 @@ func TestFlashAndValidation(t *testing.T) {
 	sample, sampleSum := GenerateTempFile(t, "sample", true)
 	dest, _ := GenerateTempFile(t, "dest", false)
 	t.Run("FlashFileToBlockDevice executes correctly", func(t *testing.T) {
-		defer (func() {
-			if err := recover(); err != nil {
-				t.Errorf("FlashFileToBlockDevice failed: %v", err)
-			}
-		})()
-		FlashFileToBlockDevice(sample.Name(), dest.Name())
-		if checksum, err := ChecksumFile(t, dest.Name()); err != nil {
+		err := FlashFileToBlockDevice(sample.Name(), dest.Name())
+		if err != nil {
+			t.Errorf("FlashFileToBlockDevice failed: %v", err)
+		} else if checksum, err := ChecksumFile(t, dest.Name()); err != nil {
 			t.Errorf("Failed to generate checksum for dest: %v", err)
 		} else if !bytes.Equal(sampleSum, checksum) {
 			t.Errorf("Checksum mismatch: expected %x, got %x", sampleSum, checksum)
@@ -102,7 +100,7 @@ func TestFlashAndValidation(t *testing.T) {
 			}
 		})()
 		err := ValidateBlockDeviceContent(sample.Name(), dest.Name())
-		if err != "" {
+		if err != nil {
 			t.Errorf("Validation failed: %v", err)
 		}
 	})
@@ -114,11 +112,11 @@ func TestFlashAndValidation(t *testing.T) {
 		}
 		// ValidateBlockDeviceContent should fail
 		defer recover()
-		errStr := ValidateBlockDeviceContent(sample.Name(), dest.Name())
-		if errStr == "" {
+		err = ValidateBlockDeviceContent(sample.Name(), dest.Name())
+		if err == nil {
 			t.Errorf("Validation should have failed due to data corruption")
-		} else if errStr != "Read/write mismatch! Validation of image failed. It is unsafe to boot this device." {
-			t.Errorf("Unexpected validation error: %v", errStr)
+		} else if !errors.Is(err, ErrDeviceValidationFailed) {
+			t.Errorf("Unexpected validation error: %v", err)
 		}
 	})
 }

@@ -68,3 +68,32 @@ func TestBytesToString(t *testing.T) {
 		})
 	}
 }
+
+func TestCapitalizeString(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"empty string", "", ""},
+		{"capitalized string of length 1", "A", "A"},
+		{"capitalized string of length 2", "Aa", "Aa"},
+		{"capitalized string of length 3", "AaA", "AaA"},
+		{"lowercase string of length 1", "a", "A"},
+		{"lowercase string of length 2", "aa", "Aa"},
+		{"lowercase string of length 3", "aaa", "Aaa"},
+		{"string prefixed with number of length 1", "1", "1"},
+		{"string prefixed with number of length 2", "1a", "1a"},
+		{"string prefixed with number of length 3", "1ab", "1ab"},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			result := app.CapitalizeString(testCase.input)
+			if result != testCase.expected {
+				t.Errorf("expected %s, got %s", testCase.expected, result)
+			}
+		})
+	}
+}

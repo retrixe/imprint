@@ -3,6 +3,7 @@
 package main
 
 import (
+	"errors"
 	"io"
 	"log"
 	"os"
@@ -70,13 +71,20 @@ func main() {
 		if flags.UseSystemDd {
 			app.RunDd(args[1], args[2])
 		} else {
-			app.FlashFileToBlockDevice(args[1], args[2])
+			err := app.FlashFileToBlockDevice(args[1], args[2])
+			if errors.Is(err, app.ErrReadWriteMismatch) {
+				log.Fatalln("Read/write mismatch! Is the dest too small!")
+			} else if err != nil {
+				log.Fatalln(app.CapitalizeString(err.Error()))
+			}
 		}
 		if !flags.DisableValidation {
 			log.Println("Phase 3/" + totalPhases + ": Validating written image on disk.")
 			err := app.ValidateBlockDeviceContent(args[1], args[2])
-			if err != "" {
-				log.Fatalln(err)
+			if errors.Is(err, app.ErrDeviceValidationFailed) {
+				log.Fatalln("Read/write mismatch! Validation of image failed. It is unsafe to boot this device.")
+			} else if err != nil {
+				log.Fatalln(app.CapitalizeString(err.Error()))
 			}
 		}
 		return

@@ -3,6 +3,7 @@ package app
 import (
 	"os"
 	"strconv"
+	"strings"
 )
 
 type ConfigurationFlags struct {
@@ -50,4 +51,11 @@ func BytesToString(bytes int, binaryPowers bool) string {
 	} else {
 		return strconv.Itoa(bytes) + "B"
 	}
+}
+
+func CapitalizeString(str string) string {
+	if len(str) == 0 {
+		return str
+	}
+	return strings.ToUpper(str[0:1]) + str[1:]
 }
