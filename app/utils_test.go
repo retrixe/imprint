@@ -46,8 +46,8 @@ func TestBytesToString(t *testing.T) {
 		binaryPowers bool
 		expected     string
 	}{
-		{"zero bytes", 0, false, "0B"},
-		{"one byte", 1, false, "1B"},
+		{"zero bytes", 0, false, "0 B"},
+		{"one byte", 1, false, "1 B"},
 		{"one kilobyte", 1000, false, "1.0 KB"},
 		{"one megabyte", 1000000, false, "1.0 MB"},
 		{"one gigabyte", 1000000000, false, "1.0 GB"},

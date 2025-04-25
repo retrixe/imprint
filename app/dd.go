@@ -37,6 +37,29 @@ func (e *NotExistsError) Error() string {
 	return fmt.Sprintf("the specified file %s does not exist!", e.Name)
 }
 
+// FormatProgress formats the progress of a dd-like operation.
+// There's some minor differences in output with dd, mainly decimal places and kB vs KB.
+func FormatProgress(total int, delta int64, action string, floatPrec bool) string {
+	str := strconv.Itoa(total) + " bytes " +
+		"(" + BytesToString(total, false) + ", " + BytesToString(total, true) + ") " + action + ", "
+	if floatPrec {
+		timeDifference := float64(delta) / 1000
+		speed := 0
+		if timeDifference > 0 {
+			speed = int(float64(total) / timeDifference)
+		}
+		str += strconv.FormatFloat(timeDifference, 'f', 3, 64) + " s, " + BytesToString(speed, false) + "/s"
+	} else {
+		timeDifference := int(delta) / 1000
+		speed := 0
+		if timeDifference > 0 {
+			speed = total / timeDifference
+		}
+		str += strconv.Itoa(timeDifference) + " s, " + BytesToString(speed, false) + "/s"
+	}
+	return str
+}
+
 // RunDd is a wrapper around the `dd` command. This wrapper behaves
 // identically to dd, but accepts stdin input "stop\n".
 func RunDd(iff string, of string) error {
@@ -102,12 +125,7 @@ func FlashFileToBlockDevice(iff string, of string) error {
 		}
 		total += n1
 		if len(timer.C) > 0 {
-			// There's some minor differences in output with dd, mainly decimal places and kB vs KB.
-			timeDifference := time.Now().UnixMilli() - startTime
-			print(strconv.Itoa(total) + " bytes " +
-				"(" + BytesToString(total, false) + ", " + BytesToString(total, true) + ") copied, " +
-				strconv.Itoa(int(timeDifference/1000)) + " s, " +
-				BytesToString(total/(int(timeDifference)/1000), false) + "/s\r")
+			print(FormatProgress(total, time.Now().UnixMilli()-startTime, "copied", false) + "\r")
 			<-timer.C
 			timer.Reset(time.Second)
 		}
@@ -117,11 +135,7 @@ func FlashFileToBlockDevice(iff string, of string) error {
 	if err != nil {
 		return fmt.Errorf("failed to sync writes to disk! %w", err)
 	} else {
-		timeDifference := float64(time.Now().UnixMilli()-startTime) / 1000
-		println(strconv.Itoa(total) + " bytes " +
-			"(" + BytesToString(total, false) + ", " + BytesToString(total, true) + ") copied, " +
-			strconv.FormatFloat(timeDifference, 'f', 3, 64) + " s, " +
-			BytesToString(int(float64(total)/timeDifference), false) + "/s")
+		println(FormatProgress(total, time.Now().UnixMilli()-startTime, "copied", true))
 	}
 	quit <- true
 	return nil
@@ -159,21 +173,12 @@ func ValidateBlockDeviceContent(iff string, of string) error {
 		}
 		total += n1
 		if len(timer.C) > 0 {
-			// There's some minor differences in output with dd, mainly decimal places and kB vs KB.
-			timeDifference := time.Now().UnixMilli() - startTime
-			print(strconv.Itoa(total) + " bytes " +
-				"(" + BytesToString(total, false) + ", " + BytesToString(total, true) + ") validated, " +
-				strconv.Itoa(int(timeDifference/1000)) + " s, " +
-				BytesToString(total/(int(timeDifference)/1000), false) + "/s\r")
+			print(FormatProgress(total, time.Now().UnixMilli()-startTime, "validated", false) + "\r")
 			<-timer.C
 			timer.Reset(time.Second)
 		}
 	}
-	timeDifference := float64(time.Now().UnixMilli()-startTime) / 1000
-	println(strconv.Itoa(total) + " bytes " +
-		"(" + BytesToString(total, false) + ", " + BytesToString(total, true) + ") validated, " +
-		strconv.FormatFloat(timeDifference, 'f', 3, 64) + " s, " +
-		BytesToString(int(float64(total)/timeDifference), false) + "/s")
+	println(FormatProgress(total, time.Now().UnixMilli()-startTime, "validated", true))
 	quit <- true
 	return nil
 }

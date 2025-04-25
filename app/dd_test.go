@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+// TODO: Test NotExistsError
+
 func GenerateTempFile(t *testing.T, suffix string, prefill bool) (*os.File, []byte) {
 	t.Helper()
 	sample, err := os.CreateTemp(t.TempDir(), t.Name()+"_"+suffix)
@@ -47,6 +49,20 @@ func GenerateTempFile(t *testing.T, suffix string, prefill bool) (*os.File, []by
 	return sample, sampleSum
 }
 
+func GenerateTempFolder(t *testing.T, suffix string) string {
+	t.Helper()
+	sample, err := os.MkdirTemp(t.TempDir(), t.Name()+"_"+suffix)
+	if err != nil {
+		t.Fatalf("Failed to create temp folder: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.RemoveAll(sample); err != nil {
+			t.Fatalf("Failed to remove temp folder: %v", err)
+		}
+	})
+	return sample
+}
+
 func ChecksumFile(t *testing.T, file string) ([]byte, error) {
 	t.Helper()
 	fileHash := sha256.New()
@@ -79,7 +95,19 @@ func TestRunDd(t *testing.T) {
 
 func TestFlashAndValidation(t *testing.T) {
 	sample, sampleSum := GenerateTempFile(t, "sample", true)
+	sampleDir := GenerateTempFolder(t, "sample")
 	dest, _ := GenerateTempFile(t, "dest", false)
+	t.Run("FlashFileToBlockDevice fails when either file is folder", func(t *testing.T) {
+		var errIsDir *IsDirectoryError
+		err := FlashFileToBlockDevice(sampleDir, dest.Name())
+		if !errors.As(err, &errIsDir) {
+			t.Errorf("Expected IsDirectoryError, got: %v", err)
+		}
+		err = FlashFileToBlockDevice(sample.Name(), sampleDir)
+		if !errors.As(err, &errIsDir) {
+			t.Errorf("Expected IsDirectoryError, got: %v", err)
+		}
+	})
 	t.Run("FlashFileToBlockDevice executes correctly", func(t *testing.T) {
 		err := FlashFileToBlockDevice(sample.Name(), dest.Name())
 		if err != nil {
@@ -146,4 +174,121 @@ func TestHandleStopInput(t *testing.T) {
 			t.Errorf("Cancel function should have been called")
 		}
 	})
+}
+
+func TestFormatProgress(t *testing.T) {
+	testCases := []struct {
+		name       string
+		totalBytes int
+		delta      int64
+		action     string
+		floatPrec  bool
+		expected   string
+	}{
+		{
+			name:       "zero bytes, zero delta, float",
+			totalBytes: 0,
+			delta:      0,
+			action:     "verified",
+			floatPrec:  true,
+			expected:   "0 bytes (0 B, 0 B) verified, 0.000 s, 0 B/s",
+		},
+		{
+			name:       "zero bytes, zero delta, int",
+			totalBytes: 0,
+			delta:      0,
+			action:     "verified",
+			floatPrec:  false,
+			expected:   "0 bytes (0 B, 0 B) verified, 0 s, 0 B/s",
+		},
+		{
+			name:       "zero bytes, short delta, float",
+			totalBytes: 0,
+			delta:      500,
+			action:     "verified",
+			floatPrec:  true,
+			expected:   "0 bytes (0 B, 0 B) verified, 0.500 s, 0 B/s",
+		},
+		{
+			name:       "zero bytes, short delta, int",
+			totalBytes: 0,
+			delta:      500,
+			action:     "verified",
+			floatPrec:  false,
+			expected:   "0 bytes (0 B, 0 B) verified, 0 s, 0 B/s",
+		},
+		{
+			name:       "small bytes, simple delta, float",
+			totalBytes: 512,
+			delta:      2000,
+			action:     "copied",
+			floatPrec:  true,
+			expected:   "512 bytes (512 B, 512 B) copied, 2.000 s, 256 B/s",
+		},
+		{
+			name:       "small bytes, simple delta, int",
+			totalBytes: 512,
+			delta:      2000,
+			action:     "copied",
+			floatPrec:  false,
+			expected:   "512 bytes (512 B, 512 B) copied, 2 s, 256 B/s",
+		},
+		{
+			name:       "KiB size, fractional delta, float",
+			totalBytes: 1536,
+			delta:      3500,
+			action:     "read",
+			floatPrec:  true,
+			expected:   "1536 bytes (1.5 KB, 1.5 KiB) read, 3.500 s, 438 B/s",
+		},
+		{
+			name:       "KiB size, fractional delta, int",
+			totalBytes: 1536,
+			delta:      3500,
+			action:     "read",
+			floatPrec:  false,
+			expected:   "1536 bytes (1.5 KB, 1.5 KiB) read, 3 s, 512 B/s",
+		},
+		{
+			name:       "MiB size, longer delta, float",
+			totalBytes: 2 * 1024 * 1024,
+			delta:      4876,
+			action:     "written",
+			floatPrec:  true,
+			expected:   "2097152 bytes (2.1 MB, 2.0 MiB) written, 4.876 s, 430.1 KB/s",
+		},
+		{
+			name:       "MiB size, longer delta, int",
+			totalBytes: 2 * 1024 * 1024,
+			delta:      4876,
+			action:     "written",
+			floatPrec:  false,
+			expected:   "2097152 bytes (2.1 MB, 2.0 MiB) written, 4 s, 524.3 KB/s",
+		},
+		{
+			name:       "Just under 1 second, int",
+			totalBytes: 1000,
+			delta:      999,
+			action:     "transferred",
+			floatPrec:  false,
+			expected:   "1000 bytes (1.0 KB, 1000 B) transferred, 0 s, 0 B/s",
+		},
+		{
+			name:       "Exactly 1 second, int",
+			totalBytes: 1000,
+			delta:      1000,
+			action:     "transferred",
+			floatPrec:  false,
+			expected:   "1000 bytes (1.0 KB, 1000 B) transferred, 1 s, 1.0 KB/s",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			result := FormatProgress(testCase.totalBytes, testCase.delta, testCase.action, testCase.floatPrec)
+			if result != testCase.expected {
+				t.Errorf("expected %s, got %s", testCase.expected, result)
+			}
+		})
+	}
 }
