@@ -189,15 +189,15 @@ func openFile(filePath string, flag int, mode fs.FileMode, name string) (*os.Fil
 		return nil, fmt.Errorf("unable to resolve path to %s! %w", name, err)
 	}
 	fileStat, err := os.Stat(path)
-	if err != nil {
+	if err != nil && os.IsNotExist(err) {
+		return nil, &NotExistsError{Name: name}
+	} else if err != nil {
 		return nil, fmt.Errorf("an error occurred while opening %s! %w", name, err)
 	} else if fileStat.Mode().IsDir() {
 		return nil, &IsDirectoryError{Name: name}
 	}
 	file, err := os.OpenFile(path, flag, mode)
-	if err != nil && os.IsNotExist(err) {
-		return nil, &NotExistsError{Name: name}
-	} else if err != nil {
+	if err != nil {
 		return nil, fmt.Errorf("an error occurred while opening %s! %w", name, err)
 	}
 	return file, nil

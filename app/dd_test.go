@@ -7,12 +7,11 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path/filepath"
 	"sync/atomic"
 	"testing"
 	"time"
 )
-
-// TODO: Test NotExistsError
 
 func GenerateTempFile(t *testing.T, suffix string, prefill bool) (*os.File, []byte) {
 	t.Helper()
@@ -106,6 +105,17 @@ func TestFlashAndValidation(t *testing.T) {
 		err = FlashFileToBlockDevice(sample.Name(), sampleDir)
 		if !errors.As(err, &errIsDir) {
 			t.Errorf("Expected IsDirectoryError, got: %v", err)
+		}
+	})
+	t.Run("FlashFileToBlockDevice fails when either file does not exist", func(t *testing.T) {
+		var errNotExists *NotExistsError
+		err := FlashFileToBlockDevice(sample.Name(), filepath.Join(sampleDir, "nonexistent"))
+		if !errors.As(err, &errNotExists) {
+			t.Errorf("Expected NotExistsError, got: %v", err)
+		}
+		err = FlashFileToBlockDevice(filepath.Join(sampleDir, "nonexistent"), dest.Name())
+		if !errors.As(err, &errNotExists) {
+			t.Errorf("Expected NotExistsError, got: %v", err)
 		}
 	})
 	t.Run("FlashFileToBlockDevice executes correctly", func(t *testing.T) {
