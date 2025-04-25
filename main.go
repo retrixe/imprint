@@ -69,7 +69,10 @@ func main() {
 		}
 		log.Println("Phase 2/" + totalPhases + ": Writing ISO to disk.")
 		if flags.UseSystemDd {
-			app.RunDd(args[1], args[2])
+			err := app.RunDd(args[1], args[2])
+			if err != nil {
+				log.Fatalln(err)
+			}
 		} else {
 			err := app.FlashFileToBlockDevice(args[1], args[2])
 			if errors.Is(err, app.ErrReadWriteMismatch) {

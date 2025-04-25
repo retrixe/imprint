@@ -66,13 +66,10 @@ func TestRunDd(t *testing.T) {
 	sample, sampleSum := GenerateTempFile(t, "sample", true)
 	dest, _ := GenerateTempFile(t, "dest", false)
 	t.Run("dd executes correctly", func(t *testing.T) {
-		defer (func() {
-			if err := recover(); err != nil {
-				t.Errorf("RunDd failed: %v", err)
-			}
-		})()
-		RunDd(sample.Name(), dest.Name())
-		if checksum, err := ChecksumFile(t, dest.Name()); err != nil {
+		err := RunDd(sample.Name(), dest.Name())
+		if err != nil {
+			t.Errorf("RunDd failed: %v", err)
+		} else if checksum, err := ChecksumFile(t, dest.Name()); err != nil {
 			t.Errorf("Failed to generate checksum for dest: %v", err)
 		} else if !bytes.Equal(sampleSum, checksum) {
 			t.Errorf("Checksum mismatch: expected %x, got %x", sampleSum, checksum)

@@ -39,30 +39,29 @@ func (e *NotExistsError) Error() string {
 
 // RunDd is a wrapper around the `dd` command. This wrapper behaves
 // identically to dd, but accepts stdin input "stop\n".
-func RunDd(iff string, of string) {
+func RunDd(iff string, of string) error {
 	cmd := exec.Command("dd", "if="+iff, "of="+of, "status=progress", "bs=1M", "conv=fdatasync")
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		panic(err)
+		return err
 	}
 	go io.Copy(os.Stdout, stdout)
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		panic(err)
+		return err
 	}
 	go io.Copy(os.Stderr, stderr)
 	err = cmd.Start()
 	if err != nil {
-		panic(err)
+		return err
 	}
 	quit := handleStopInput(os.Stdin, func() { cmd.Process.Kill() })
 	err = cmd.Wait()
 	quit <- true
 	if err != nil && cmd.ProcessState.ExitCode() != 0 {
 		os.Exit(cmd.ProcessState.ExitCode())
-	} else if err != nil {
-		panic(err)
 	}
+	return err
 }
 
 // FlashFileToBlockDevice is a re-implementation of dd to work cross-platform on Windows as well.
