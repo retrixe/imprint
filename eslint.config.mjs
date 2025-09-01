@@ -1,13 +1,13 @@
 import js from '@eslint/js'
-import tseslint from 'typescript-eslint'
+import eslintConfigPrettierFlat from 'eslint-config-prettier/flat'
 import standardJsx from 'eslint-config-standard-jsx'
 import standardReact from 'eslint-config-standard-react'
+import importPlugin from 'eslint-plugin-import'
+import nodePlugin from 'eslint-plugin-n'
+import pluginPromise from 'eslint-plugin-promise'
 import react from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
-import importPlugin from 'eslint-plugin-import'
-import pluginPromise from 'eslint-plugin-promise'
-import nodePlugin from 'eslint-plugin-n'
-import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended'
+import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
   {
@@ -70,5 +70,5 @@ export default tseslint.config(
       'react/react-in-jsx-scope': 'off',
     },
   },
-  eslintPluginPrettierRecommended,
+  eslintConfigPrettierFlat,
 )

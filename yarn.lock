@@ -152,6 +152,97 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@biomejs/biome@npm:^2.2.2":
+  version: 2.2.2
+  resolution: "@biomejs/biome@npm:2.2.2"
+  dependencies:
+    "@biomejs/cli-darwin-arm64": "npm:2.2.2"
+    "@biomejs/cli-darwin-x64": "npm:2.2.2"
+    "@biomejs/cli-linux-arm64": "npm:2.2.2"
+    "@biomejs/cli-linux-arm64-musl": "npm:2.2.2"
+    "@biomejs/cli-linux-x64": "npm:2.2.2"
+    "@biomejs/cli-linux-x64-musl": "npm:2.2.2"
+    "@biomejs/cli-win32-arm64": "npm:2.2.2"
+    "@biomejs/cli-win32-x64": "npm:2.2.2"
+  dependenciesMeta:
+    "@biomejs/cli-darwin-arm64":
+      optional: true
+    "@biomejs/cli-darwin-x64":
+      optional: true
+    "@biomejs/cli-linux-arm64":
+      optional: true
+    "@biomejs/cli-linux-arm64-musl":
+      optional: true
+    "@biomejs/cli-linux-x64":
+      optional: true
+    "@biomejs/cli-linux-x64-musl":
+      optional: true
+    "@biomejs/cli-win32-arm64":
+      optional: true
+    "@biomejs/cli-win32-x64":
+      optional: true
+  bin:
+    biome: bin/biome
+  checksum: 10/d741c187816d5ecca3d140f5d5295a38ef42beebfb5914a034789911fd6c4b0ac824d9896d583ec51ba4cce00949be75f9373784bc83c2ab89dcf11a6f59e8bf
+  languageName: node
+  linkType: hard
+
+"@biomejs/cli-darwin-arm64@npm:2.2.2":
+  version: 2.2.2
+  resolution: "@biomejs/cli-darwin-arm64@npm:2.2.2"
+  conditions: os=darwin & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@biomejs/cli-darwin-x64@npm:2.2.2":
+  version: 2.2.2
+  resolution: "@biomejs/cli-darwin-x64@npm:2.2.2"
+  conditions: os=darwin & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@biomejs/cli-linux-arm64-musl@npm:2.2.2":
+  version: 2.2.2
+  resolution: "@biomejs/cli-linux-arm64-musl@npm:2.2.2"
+  conditions: os=linux & cpu=arm64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"@biomejs/cli-linux-arm64@npm:2.2.2":
+  version: 2.2.2
+  resolution: "@biomejs/cli-linux-arm64@npm:2.2.2"
+  conditions: os=linux & cpu=arm64 & libc=glibc
+  languageName: node
+  linkType: hard
+
+"@biomejs/cli-linux-x64-musl@npm:2.2.2":
+  version: 2.2.2
+  resolution: "@biomejs/cli-linux-x64-musl@npm:2.2.2"
+  conditions: os=linux & cpu=x64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"@biomejs/cli-linux-x64@npm:2.2.2":
+  version: 2.2.2
+  resolution: "@biomejs/cli-linux-x64@npm:2.2.2"
+  conditions: os=linux & cpu=x64 & libc=glibc
+  languageName: node
+  linkType: hard
+
+"@biomejs/cli-win32-arm64@npm:2.2.2":
+  version: 2.2.2
+  resolution: "@biomejs/cli-win32-arm64@npm:2.2.2"
+  conditions: os=win32 & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@biomejs/cli-win32-x64@npm:2.2.2":
+  version: 2.2.2
+  resolution: "@biomejs/cli-win32-x64@npm:2.2.2"
+  conditions: os=win32 & cpu=x64
+  languageName: node
+  linkType: hard
+
 "@emotion/babel-plugin@npm:^11.13.5":
   version: 11.13.5
   resolution: "@emotion/babel-plugin@npm:11.13.5"
@@ -2112,13 +2203,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@pkgr/core@npm:^0.2.0":
-  version: 0.2.0
-  resolution: "@pkgr/core@npm:0.2.0"
-  checksum: 10/b7e126161ecf59ceaa0a95ba4b937cc57bf29c42bd72dc129391e4c9ab06aac31e37379dde4f523a736aab9765b18c2494096eedcbe1f494df415998eef2b949
-  languageName: node
-  linkType: hard
-
 "@popperjs/core@npm:^2.11.8":
   version: 2.11.8
   resolution: "@popperjs/core@npm:2.11.8"
@@ -4016,26 +4100,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-prettier@npm:^5.2.4":
-  version: 5.2.4
-  resolution: "eslint-plugin-prettier@npm:5.2.4"
-  dependencies:
-    prettier-linter-helpers: "npm:^1.0.0"
-    synckit: "npm:^0.10.2"
-  peerDependencies:
-    "@types/eslint": ">=8.0.0"
-    eslint: ">=8.0.0"
-    eslint-config-prettier: "*"
-    prettier: ">=3.0.0"
-  peerDependenciesMeta:
-    "@types/eslint":
-      optional: true
-    eslint-config-prettier:
-      optional: true
-  checksum: 10/6508bf7e12b98e16fe185c64cd290a6d055b7fadaef30b5b4677cf4a1ce8b1d5975590722809fa762b1cdf01b605559cf4d40fc900a6f67f49bb02ecff092e78
-  languageName: node
-  linkType: hard
-
 "eslint-plugin-promise@npm:^7.2.1":
   version: 7.2.1
   resolution: "eslint-plugin-promise@npm:7.2.1"
@@ -4212,13 +4276,6 @@ __metadata:
   version: 3.1.3
   resolution: "fast-deep-equal@npm:3.1.3"
   checksum: 10/e21a9d8d84f53493b6aa15efc9cfd53dd5b714a1f23f67fb5dc8f574af80df889b3bce25dc081887c6d25457cce704e636395333abad896ccdec03abaf1f3f9d
-  languageName: node
-  linkType: hard
-
-"fast-diff@npm:^1.1.2":
-  version: 1.3.0
-  resolution: "fast-diff@npm:1.3.0"
-  checksum: 10/9e57415bc69cd6efcc720b3b8fe9fdaf42dcfc06f86f0f45378b1fa512598a8aac48aa3928c8751d58e2f01bb4ba4f07e4f3d9bc0d57586d45f1bd1e872c6cde
   languageName: node
   linkType: hard
 
@@ -4862,6 +4919,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "imprint@workspace:."
   dependencies:
+    "@biomejs/biome": "npm:^2.2.2"
     "@emotion/react": "npm:^11.14.0"
     "@emotion/styled": "npm:^11.14.0"
     "@eslint/js": "npm:^9.23.0"
@@ -4876,13 +4934,11 @@ __metadata:
     eslint-config-standard-react: "npm:^13.0.0"
     eslint-plugin-import: "npm:^2.31.0"
     eslint-plugin-n: "npm:^17.16.2"
-    eslint-plugin-prettier: "npm:^5.2.4"
     eslint-plugin-promise: "npm:^7.2.1"
     eslint-plugin-react: "npm:^7.37.4"
     eslint-plugin-react-hooks: "npm:^5.2.0"
     jsbi: "npm:^4.3.0"
     parcel: "npm:^2.14.2"
-    prettier: "npm:^3.5.3"
     process: "npm:^0.11.10"
     react: "npm:^19.0.0"
     react-dom: "npm:^19.0.0"
@@ -6388,24 +6444,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prettier-linter-helpers@npm:^1.0.0":
-  version: 1.0.0
-  resolution: "prettier-linter-helpers@npm:1.0.0"
-  dependencies:
-    fast-diff: "npm:^1.1.2"
-  checksum: 10/00ce8011cf6430158d27f9c92cfea0a7699405633f7f1d4a45f07e21bf78e99895911cbcdc3853db3a824201a7c745bd49bfea8abd5fb9883e765a90f74f8392
-  languageName: node
-  linkType: hard
-
-"prettier@npm:^3.5.3":
-  version: 3.5.3
-  resolution: "prettier@npm:3.5.3"
-  bin:
-    prettier: bin/prettier.cjs
-  checksum: 10/7050c08f674d9e49fbd9a4c008291d0715471f64e94cc5e4b01729affce221dfc6875c8de7e66b728c64abc9352eefb7eaae071b5f79d30081be207b53774b78
-  languageName: node
-  linkType: hard
-
 "proc-log@npm:^3.0.0":
   version: 3.0.0
   resolution: "proc-log@npm:3.0.0"
@@ -7227,16 +7265,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"synckit@npm:^0.10.2":
-  version: 0.10.3
-  resolution: "synckit@npm:0.10.3"
-  dependencies:
-    "@pkgr/core": "npm:^0.2.0"
-    tslib: "npm:^2.8.1"
-  checksum: 10/bab2193585139f972b3725a9db8fedb6a93fe50bb5db06c0e8d3c93dbf83157e1eeba9fbd9c4922a1a41e9912b754ffe3906a3a7fa639ed502105de67d888207
-  languageName: node
-  linkType: hard
-
 "tapable@npm:^2.2.0":
   version: 2.2.1
   resolution: "tapable@npm:2.2.1"
@@ -7306,13 +7334,6 @@ __metadata:
   version: 2.6.2
   resolution: "tslib@npm:2.6.2"
   checksum: 10/bd26c22d36736513980091a1e356378e8b662ded04204453d353a7f34a4c21ed0afc59b5f90719d4ba756e581a162ecbf93118dc9c6be5acf70aa309188166ca
-  languageName: node
-  linkType: hard
-
-"tslib@npm:^2.8.1":
-  version: 2.8.1
-  resolution: "tslib@npm:2.8.1"
-  checksum: 10/3e2e043d5c2316461cb54e5c7fe02c30ef6dccb3384717ca22ae5c6b5bc95232a6241df19c622d9c73b809bea33b187f6dbc73030963e29950c2141bc32a79f7
   languageName: node
   linkType: hard
 

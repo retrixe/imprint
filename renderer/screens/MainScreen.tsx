@@ -10,8 +10,8 @@ import {
   Textarea,
   Typography,
 } from '@mui/joy'
-import * as styles from './MainScreen.module.scss'
 import { useState } from 'react'
+import * as styles from './MainScreen.module.scss'
 
 const MainScreen = ({
   file,

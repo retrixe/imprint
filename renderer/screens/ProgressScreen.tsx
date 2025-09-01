@@ -9,8 +9,8 @@ import {
   Typography,
 } from '@mui/joy'
 import JSBI from 'jsbi'
-import * as styles from './ProgressScreen.module.scss'
 import { useEffect, useState } from 'react'
+import * as styles from './ProgressScreen.module.scss'
 
 function bytesToString(bytes: number, binaryPowers = false): string {
   const divisor = binaryPowers ? 1024 : 1000

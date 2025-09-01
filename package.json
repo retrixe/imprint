@@ -7,7 +7,7 @@
   "license": "Apache-2.0",
   "private": true,
   "scripts": {
-    "lint": "eslint . && tsc --noEmit",
+    "lint": "tsc --noEmit && biome check && eslint --cache --cache-strategy content --cache-location .parcel-cache/ .",
     "dev": "parcel renderer/index.html & DEBUG=true go run -ldflags=\"-s -w -X main.overrideUrl=http://localhost:1234/\" . & echo Starting...",
     "start": "parcel build renderer/index.tsx && DEBUG=true go run .",
     "build": "parcel build renderer/index.tsx --no-source-maps && yarn build:go",
@@ -25,6 +25,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.2.2",
     "@eslint/js": "^9.23.0",
     "@parcel/transformer-sass": "2.14.2",
     "@tsconfig/vite-react": "^3.4.0",
@@ -36,12 +37,10 @@
     "eslint-config-standard-react": "^13.0.0",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-n": "^17.16.2",
-    "eslint-plugin-prettier": "^5.2.4",
     "eslint-plugin-promise": "^7.2.1",
     "eslint-plugin-react": "^7.37.4",
     "eslint-plugin-react-hooks": "^5.2.0",
     "parcel": "^2.14.2",
-    "prettier": "^3.5.3",
     "process": "^0.11.10",
     "run-script-os": "^1.1.6",
     "typescript": "^5.8.2",
