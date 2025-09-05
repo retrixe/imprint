@@ -1,4 +1,4 @@
-package app
+package app_test
 
 import (
 	"errors"
@@ -6,10 +6,12 @@ import (
 	"os/exec"
 	"slices"
 	"testing"
+
+	"github.com/retrixe/imprint/app"
 )
 
 type mockSudoPlatform struct {
-	Platform
+	app.Platform
 	*testing.T
 	os             string
 	elevated       bool
@@ -71,37 +73,37 @@ func (p mockSudoPlatform) ExecLookPath(file string) (string, error) {
 func TestIsElevated(t *testing.T) {
 	t.Run("works when elevated on Windows", func(t *testing.T) {
 		t.Parallel()
-		if !IsElevated(mockSudoPlatform{T: t, os: "windows", elevated: true}) {
+		if !app.IsElevated(mockSudoPlatform{T: t, os: "windows", elevated: true}) {
 			t.Errorf("Expected IsElevated to return true")
 		}
 	})
 	t.Run("works when not elevated on Windows", func(t *testing.T) {
 		t.Parallel()
-		if IsElevated(mockSudoPlatform{T: t, os: "windows", elevated: false}) {
+		if app.IsElevated(mockSudoPlatform{T: t, os: "windows", elevated: false}) {
 			t.Errorf("Expected IsElevated to return false")
 		}
 	})
 	t.Run("works when elevated on Linux", func(t *testing.T) {
 		t.Parallel()
-		if !IsElevated(mockSudoPlatform{T: t, os: "linux", elevated: true}) {
+		if !app.IsElevated(mockSudoPlatform{T: t, os: "linux", elevated: true}) {
 			t.Errorf("Expected IsElevated to return true")
 		}
 	})
 	t.Run("works when not elevated on Linux", func(t *testing.T) {
 		t.Parallel()
-		if IsElevated(mockSudoPlatform{T: t, os: "linux", elevated: false}) {
+		if app.IsElevated(mockSudoPlatform{T: t, os: "linux", elevated: false}) {
 			t.Errorf("Expected IsElevated to return false")
 		}
 	})
 	t.Run("works when elevated on macOS", func(t *testing.T) {
 		t.Parallel()
-		if !IsElevated(mockSudoPlatform{T: t, os: "darwin", elevated: true}) {
+		if !app.IsElevated(mockSudoPlatform{T: t, os: "darwin", elevated: true}) {
 			t.Errorf("Expected IsElevated to return true")
 		}
 	})
 	t.Run("works when not elevated on macOS", func(t *testing.T) {
 		t.Parallel()
-		if IsElevated(mockSudoPlatform{T: t, os: "darwin", elevated: false}) {
+		if app.IsElevated(mockSudoPlatform{T: t, os: "darwin", elevated: false}) {
 			t.Errorf("Expected IsElevated to return false")
 		}
 	})
@@ -112,7 +114,7 @@ func TestElevatedCommand(t *testing.T) {
 		t.Parallel()
 		mockPlatform := mockSudoPlatform{T: t, os: "windows", elevated: true, expectedCmd: "cmd.exe"}
 		mockPlatform.expectedCmdArg = []string{"test1", "test2"}
-		cmd, err := ElevatedCommand(mockPlatform, "cmd.exe", "test1", "test2")
+		cmd, err := app.ElevatedCommand(mockPlatform, "cmd.exe", "test1", "test2")
 		if err != nil {
 			t.Errorf("Expected ElevatedCommand to succeed, got %v", err)
 		}
@@ -124,8 +126,8 @@ func TestElevatedCommand(t *testing.T) {
 		t.Parallel()
 		mockPlatform := mockSudoPlatform{T: t, os: "windows", elevated: false, expectedCmd: "cmd.exe"}
 		mockPlatform.expectedCmdArg = []string{"test1", "test2"}
-		cmd, err := ElevatedCommand(mockPlatform, "cmd.exe", "test1", "test2")
-		if !errors.Is(err, ErrWindowsNoOp) {
+		cmd, err := app.ElevatedCommand(mockPlatform, "cmd.exe", "test1", "test2")
+		if !errors.Is(err, app.ErrWindowsNoOp) {
 			t.Errorf("Expected ElevatedCommand to return ErrWindowsNoOp, got %v", err)
 		}
 		if cmd != nil {
@@ -136,7 +138,7 @@ func TestElevatedCommand(t *testing.T) {
 		t.Parallel()
 		mockPlatform := mockSudoPlatform{T: t, os: "linux", elevated: true, expectedCmd: "bash"}
 		mockPlatform.expectedCmdArg = []string{"test1", "test2"}
-		cmd, err := ElevatedCommand(mockPlatform, "bash", "test1", "test2")
+		cmd, err := app.ElevatedCommand(mockPlatform, "bash", "test1", "test2")
 		if err != nil {
 			t.Errorf("Expected ElevatedCommand to succeed, got %v", err)
 		}
@@ -154,7 +156,7 @@ func TestElevatedCommand(t *testing.T) {
 			display,
 			xauthority,
 			"bash", "test1", "test2"}
-		cmd, err := ElevatedCommand(mockPlatform, "bash", "test1", "test2")
+		cmd, err := app.ElevatedCommand(mockPlatform, "bash", "test1", "test2")
 		if err != nil {
 			t.Errorf("Expected ElevatedCommand to succeed, got %v", err)
 		}
@@ -166,8 +168,8 @@ func TestElevatedCommand(t *testing.T) {
 		t.Parallel()
 		mockPlatform := mockSudoPlatform{T: t, os: "linux", elevated: false}
 		mockPlatform.expectedCmdArg = []string{"test1", "test2"}
-		cmd, err := ElevatedCommand(mockPlatform, "bash", "test1", "test2")
-		if !errors.Is(err, ErrPkexecNotFound) {
+		cmd, err := app.ElevatedCommand(mockPlatform, "bash", "test1", "test2")
+		if !errors.Is(err, app.ErrPkexecNotFound) {
 			t.Errorf("Expected ElevatedCommand to return ErrPkexecNotFound, got %v", err)
 		}
 		if cmd != nil {
@@ -178,7 +180,7 @@ func TestElevatedCommand(t *testing.T) {
 		t.Parallel()
 		mockPlatform := mockSudoPlatform{T: t, os: "darwin", elevated: true, expectedCmd: "bash"}
 		mockPlatform.expectedCmdArg = []string{"test1", "test2"}
-		cmd, err := ElevatedCommand(mockPlatform, "bash", "test1", "test2")
+		cmd, err := app.ElevatedCommand(mockPlatform, "bash", "test1", "test2")
 		if err != nil {
 			t.Errorf("Expected ElevatedCommand to succeed, got %v", err)
 		}
@@ -192,7 +194,7 @@ func TestElevatedCommand(t *testing.T) {
 			elevationAgent: "osascript", expectedCmd: "/usr/bin/osascript"}
 		mockPlatform.expectedCmdArg = []string{
 			"-e", `do shell script "exec bash \"\\\"test1\" \"test2\"" with administrator privileges`}
-		cmd, err := ElevatedCommand(mockPlatform, "bash", "\"test1", "test2")
+		cmd, err := app.ElevatedCommand(mockPlatform, "bash", "\"test1", "test2")
 		if err != nil {
 			t.Errorf("Expected ElevatedCommand to succeed, got %v", err)
 		}
@@ -204,8 +206,8 @@ func TestElevatedCommand(t *testing.T) {
 		t.Parallel()
 		mockPlatform := mockSudoPlatform{T: t, os: "darwin", elevated: false}
 		mockPlatform.expectedCmdArg = []string{"test1", "test2"}
-		cmd, err := ElevatedCommand(mockPlatform, "bash", "test1", "test2")
-		if !errors.Is(err, ErrOsascriptNotFound) {
+		cmd, err := app.ElevatedCommand(mockPlatform, "bash", "test1", "test2")
+		if !errors.Is(err, app.ErrOsascriptNotFound) {
 			t.Errorf("Expected ElevatedCommand to return ErrOsascriptNotFound, got %v", err)
 		}
 		if cmd != nil {
