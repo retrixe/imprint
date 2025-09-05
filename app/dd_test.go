@@ -78,6 +78,8 @@ func ChecksumFile(t *testing.T, file string) ([]byte, error) {
 }
 
 func TestRunDd(t *testing.T) {
+	// TODO: This should be as comprehensive as FlashFileToBlockDevice,
+	//       but we don't care much about dd support beyond it working...
 	sample, sampleSum := GenerateTempFile(t, "sample", true)
 	dest, _ := GenerateTempFile(t, "dest", false)
 	t.Run("dd executes correctly", func(t *testing.T) {
