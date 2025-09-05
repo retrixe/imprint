@@ -1,7 +1,6 @@
 package app_test
 
 import (
-	"os"
 	"testing"
 
 	"github.com/retrixe/imprint/app"
@@ -28,8 +27,7 @@ func TestParseCLIFlags(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
-			os.Args = testCase.args
-			args, config := app.ParseCLIFlags()
+			args, config := app.ParseCLIFlags(testCase.args)
 			if len(args) != len(testCase.expectedArgs) {
 				t.Errorf("expected %d arguments, got %d", len(testCase.expectedArgs), len(args))
 			} else if config != testCase.expectedFlags {

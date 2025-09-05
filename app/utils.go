@@ -1,7 +1,6 @@
 package app
 
 import (
-	"os"
 	"strconv"
 	"strings"
 )
@@ -11,18 +10,19 @@ type ConfigurationFlags struct {
 	DisableValidation bool
 }
 
-func ParseCLIFlags() ([]string, ConfigurationFlags) {
+func ParseCLIFlags(osArgs []string) ([]string, ConfigurationFlags) {
 	args := []string{}
 	config := ConfigurationFlags{}
-	if len(os.Args) == 0 {
+	if len(osArgs) == 0 {
 		return args, config
 	}
-	for _, arg := range os.Args[1:] {
-		if arg == "--use-system-dd" {
+	for _, arg := range osArgs[1:] {
+		switch arg {
+		case "--use-system-dd":
 			config.UseSystemDd = true
-		} else if arg == "--disable-validation" {
+		case "--disable-validation":
 			config.DisableValidation = true
-		} else {
+		default:
 			args = append(args, arg)
 		}
 	}

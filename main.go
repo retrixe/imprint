@@ -51,7 +51,7 @@ func main() {
 		log.SetFlags(0)
 		log.SetOutput(os.Stderr)
 		log.SetPrefix("[flash] ")
-		args, flags := app.ParseCLIFlags()
+		args, flags := app.ParseCLIFlags(os.Args)
 		if len(args) < 4 {
 			println("Invalid usage: imprint flash <file> <destination> (--use-system-dd) (--disable-validation)")
 			os.Exit(1)
