@@ -19,18 +19,19 @@ type Device struct {
 }
 
 // GetDevices returns the list of USB devices available to read/write from.
-func GetDevices() ([]Device, error) {
+func GetDevices(platform Platform) ([]Device, error) {
 	// TODO: -J = --json (available since Ubuntu 16.04)
 	// -d = --nodeps
 	// -b = --bytes
 	// -o = --output
-	res, err := exec.Command("lsblk", "-d", "-b", "-o", "KNAME,TYPE,RM,SIZE,MODEL").Output()
+	res, err := platform.ExecCommandOutput(platform.ExecCommand(
+		"lsblk", "-d", "-b", "-o", "KNAME,TYPE,RM,SIZE,MODEL"))
 	if err != nil {
 		return nil, err
 	}
 
 	// TODO: This would be better as an /etc/fstab check, to be honest... This is unreliable.
-	bootDevices, err := exec.Command("df", "/", "/home").Output()
+	bootDevices, err := platform.ExecCommandOutput(platform.ExecCommand("df", "/", "/home"))
 	if err != nil {
 		return nil, err
 	}

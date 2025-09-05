@@ -109,7 +109,7 @@ func main() {
 
 	// Bind a function to request refresh of devices attached.
 	w.Bind("refreshDevices", func() {
-		devices, err := app.GetDevices()
+		devices, err := app.GetDevices(app.SystemPlatform)
 		if err != nil {
 			w.Eval("setDialogReact(" + ParseToJsString("Error: "+err.Error()) + ")")
 			return

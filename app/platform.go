@@ -11,29 +11,34 @@ type Platform interface {
 	OsGeteuid() int
 	RuntimeGOOS() string
 	ExecCommand(name string, arg ...string) *exec.Cmd
+	ExecCommandOutput(cmd *exec.Cmd) ([]byte, error)
 	ExecLookPath(file string) (string, error)
 }
 
-type SystemPlatform struct{}
+type systemPlatform struct{}
 
-var System Platform = SystemPlatform{}
+var SystemPlatform Platform = systemPlatform{}
 
-func (p SystemPlatform) OsOpen(name string) (*os.File, error) {
+func (p systemPlatform) OsOpen(name string) (*os.File, error) {
 	return os.Open(name)
 }
 
-func (p SystemPlatform) OsGeteuid() int {
+func (p systemPlatform) OsGeteuid() int {
 	return os.Geteuid()
 }
 
-func (p SystemPlatform) RuntimeGOOS() string {
+func (p systemPlatform) RuntimeGOOS() string {
 	return runtime.GOOS
 }
 
-func (p SystemPlatform) ExecCommand(name string, arg ...string) *exec.Cmd {
+func (p systemPlatform) ExecCommand(name string, arg ...string) *exec.Cmd {
 	return exec.Command(name, arg...)
 }
 
-func (p SystemPlatform) ExecLookPath(file string) (string, error) {
+func (p systemPlatform) ExecCommandOutput(cmd *exec.Cmd) ([]byte, error) {
+	return cmd.Output()
+}
+
+func (p systemPlatform) ExecLookPath(file string) (string, error) {
 	return exec.LookPath(file)
 }

@@ -3,7 +3,6 @@ package app
 import (
 	"io/fs"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 )
@@ -19,8 +18,8 @@ type Device struct {
 const wmicArgs = "diskdrive get deviceid, mediatype, model, caption, size"
 
 // GetDevices returns the list of USB devices available to read/write from.
-func GetDevices() ([]Device, error) {
-	res, err := exec.Command("wmic", strings.Split(wmicArgs, " ")...).Output()
+func GetDevices(platform Platform) ([]Device, error) {
+	res, err := platform.ExecCommandOutput(platform.ExecCommand("wmic", strings.Split(wmicArgs, " ")...))
 	if err != nil {
 		return nil, err
 	}

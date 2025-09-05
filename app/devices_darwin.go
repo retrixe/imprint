@@ -17,8 +17,8 @@ type Device struct {
 }
 
 // GetDevices returns the list of USB devices available to read/write from.
-func GetDevices() ([]Device, error) {
-	res, err := exec.Command("diskutil", "info", "-all").Output()
+func GetDevices(platform Platform) ([]Device, error) {
+	res, err := platform.ExecCommandOutput(platform.ExecCommand("diskutil", "info", "-all"))
 	if err != nil {
 		return nil, err
 	}
