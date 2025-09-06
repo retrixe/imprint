@@ -71,6 +71,7 @@ func (p mockSudoPlatform) ExecLookPath(file string) (string, error) {
 }
 
 func TestIsElevated(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name     string
 		os       string
@@ -96,6 +97,7 @@ func TestIsElevated(t *testing.T) {
 }
 
 func TestElevatedCommand(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name            string
 		platform        app.Platform

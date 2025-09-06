@@ -45,20 +45,6 @@ func GenerateTempFile(t *testing.T, suffix string, prefill bool) (*os.File, []by
 	return sample, nil
 }
 
-func GenerateTempFolder(t *testing.T, suffix string) string {
-	t.Helper()
-	sample, err := os.MkdirTemp(t.TempDir(), t.Name()+"_"+suffix)
-	if err != nil {
-		t.Fatalf("Failed to create temp folder: %v", err)
-	}
-	t.Cleanup(func() {
-		if err := os.RemoveAll(sample); err != nil {
-			t.Fatalf("Failed to remove temp folder: %v", err)
-		}
-	})
-	return sample
-}
-
 func ChecksumFile(t *testing.T, file string) ([]byte, error) {
 	t.Helper()
 	fileHash := sha256.New()
@@ -75,6 +61,7 @@ func ChecksumFile(t *testing.T, file string) ([]byte, error) {
 }
 
 func TestRunDd(t *testing.T) {
+	t.Parallel()
 	// TODO: This should be as comprehensive as FlashFileToBlockDevice,
 	//       but we don't care much about dd support beyond it working...
 	if _, err := exec.LookPath("dd"); err != nil {
@@ -95,8 +82,9 @@ func TestRunDd(t *testing.T) {
 }
 
 func TestFlashAndValidation(t *testing.T) {
+	t.Parallel()
 	sample, sampleSum := GenerateTempFile(t, "sample", true)
-	sampleDir := GenerateTempFolder(t, "sample")
+	sampleDir := t.TempDir()
 	dest, _ := GenerateTempFile(t, "dest", false)
 	t.Run("FlashFileToBlockDevice fails when either file is folder", func(t *testing.T) {
 		var errIsDir *IsDirectoryError
@@ -153,6 +141,7 @@ func TestFlashAndValidation(t *testing.T) {
 }
 
 func TestHandleStopInput(t *testing.T) {
+	t.Parallel()
 	t.Run("quit handling stop input with channel message", func(t *testing.T) {
 		t.Parallel()
 		quit := handleStopInput(io.NopCloser(bytes.NewBufferString("\n")), func() {

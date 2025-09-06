@@ -7,6 +7,7 @@ import (
 )
 
 func TestBytesToString(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name         string
 		bytes        int
@@ -37,6 +38,7 @@ func TestBytesToString(t *testing.T) {
 }
 
 func TestCapitalizeString(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name     string
 		input    string
