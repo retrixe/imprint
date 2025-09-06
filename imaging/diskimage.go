@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -65,7 +66,11 @@ func FormatProgress(total int, delta int64, action string, floatPrec bool) strin
 // RunDd is a wrapper around the `dd` command. This wrapper behaves
 // identically to dd, but accepts stdin input "stop\n".
 func RunDd(iff string, of string) error {
-	cmd := exec.Command("dd", "if="+iff, "of="+of, "status=progress", "bs=1M", "conv=fdatasync")
+	conv := "conv=sync"
+	if runtime.GOOS == "linux" {
+		conv = "conv=fdatasync"
+	}
+	cmd := exec.Command("dd", "if="+iff, "of="+of, "status=progress", "bs=1M", conv)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return err

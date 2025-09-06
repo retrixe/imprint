@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client'
 import App from './App'
 
 declare global {
-  /* eslint-disable no-var */
   // Exports from Go app process.
   var flash: (filePath: string, devicePath: string, deviceSize: number) => void
   var cancelFlash: () => void
@@ -20,7 +19,7 @@ declare global {
     speed: string
     phase: string
   }
-} /* eslint-enable no-var */
+}
 
 const theme = extendTheme({
   fontFamily: {
