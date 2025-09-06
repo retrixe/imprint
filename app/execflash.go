@@ -37,8 +37,8 @@ func (err *DdError) Error() string {
 
 // CopyConvert executes the `dd` Unix utility and provides its output.
 //
-// Technically, this isn't true anymore, it executes imprint itself
-// with some special parameters as admin. The new imprint process
+// Technically, this isn't true anymore, it executes Imprint itself
+// with some special parameters as admin. The new Imprint process
 // wraps `dd` and accepts "stop\n" stdin to terminate dd. This is
 // because killing the process doesn't work with pkexec/osascript,
 // and this approach enables us to reimplement dd fully.

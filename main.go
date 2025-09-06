@@ -55,7 +55,7 @@ var disableValidationFlag = flashFlagSet.Bool("disable-validation", false, "Disa
 func init() {
 	flag.Usage = func() {
 		println("Usage: imprint [command] [options]")
-		println("\nWithout any specified command or options, the imprint GUI will start.")
+		println("\nWithout any specified command or options, the Imprint GUI will start.")
 		println("\nAvailable commands:")
 		println("  flash       Flash a disk image to a specific device.")
 		println("\nOptions:")
