@@ -48,11 +48,8 @@ func CopyConvert(iff string, of string) (chan DdProgress, io.WriteCloser, error)
 	if err != nil {
 		return nil, nil, err
 	}
-	ddFlag := ""
-	if os.Getenv("__USE_SYSTEM_DD") == "true" {
-		ddFlag = "--use-system-dd"
-	}
-	cmd, err := ElevatedCommand(SystemPlatform, executable, "flash", iff, of, ddFlag)
+	ddFlag := "--use-system-dd=" + strconv.FormatBool(os.Getenv("__USE_SYSTEM_DD") == "true")
+	cmd, err := ElevatedCommand(SystemPlatform, executable, "flash", ddFlag, iff, of)
 	if err != nil {
 		return nil, nil, err
 	}

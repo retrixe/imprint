@@ -6,37 +6,6 @@ import (
 	"github.com/retrixe/imprint/app"
 )
 
-func TestParseCLIFlags(t *testing.T) {
-	testCases := []struct {
-		name          string
-		args          []string
-		expectedArgs  []string
-		expectedFlags app.ConfigurationFlags
-	}{
-		{"nil arguments (somehow)", []string{}, []string{}, app.ConfigurationFlags{}},
-		{"zero arguments", []string{"imprint"}, []string{}, app.ConfigurationFlags{}},
-		{"one argument", []string{"imprint", "arg1"}, []string{"arg1"}, app.ConfigurationFlags{}},
-		{"two arguments", []string{"imprint", "arg1", "arg2"}, []string{"arg1", "arg2"}, app.ConfigurationFlags{}},
-		{"use-system-dd flag", []string{"imprint", "--use-system-dd"}, []string{}, app.ConfigurationFlags{UseSystemDd: true}},
-		{"disable-validation flag", []string{"imprint", "--disable-validation"}, []string{}, app.ConfigurationFlags{DisableValidation: true}},
-		{"both flags", []string{"imprint", "--use-system-dd", "--disable-validation"}, []string{}, app.ConfigurationFlags{UseSystemDd: true, DisableValidation: true}},
-		{"both flags and arguments", []string{"imprint", "--use-system-dd", "--disable-validation", "arg1", "arg2"}, []string{"arg1", "arg2"}, app.ConfigurationFlags{UseSystemDd: true, DisableValidation: true}},
-		{"mixed order of both flags and arguments", []string{"imprint", "arg1", "--use-system-dd", "arg2", "--disable-validation"}, []string{"arg1", "arg2"}, app.ConfigurationFlags{UseSystemDd: true, DisableValidation: true}},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-			args, config := app.ParseCLIFlags(testCase.args)
-			if len(args) != len(testCase.expectedArgs) {
-				t.Errorf("expected %d arguments, got %d", len(testCase.expectedArgs), len(args))
-			} else if config != testCase.expectedFlags {
-				t.Errorf("expected flags %v, got %v", testCase.expectedFlags, config)
-			}
-		})
-	}
-}
-
 func TestBytesToString(t *testing.T) {
 	testCases := []struct {
 		name         string

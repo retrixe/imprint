@@ -4,6 +4,7 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"io"
 	"log"
 	"os"
@@ -25,10 +26,10 @@ import (
 const version = "1.0.0-alpha.2"
 
 var w webview.WebView
+var overrideUrl = ""
 
 //go:embed renderer/index.html
 var html string
-var overrideUrl = ""
 
 //go:embed dist/index.css
 var css string
@@ -44,47 +45,73 @@ func ParseToJsString(s string) string {
 		"\n", `\n`)
 }
 
+var vFlag = flag.Bool("v", false, "")
+var versionFlag = flag.Bool("version", false, "Show version")
+
+var flashFlagSet = flag.NewFlagSet("flash", flag.ExitOnError)
+var useSystemDdFlag = flashFlagSet.Bool("use-system-dd", false, "Use dd executable from OS to flash disk images")
+var disableValidationFlag = flashFlagSet.Bool("disable-validation", false, "Disable validation of written image")
+
+func init() {
+	flag.Usage = func() {
+		println("Usage: imprint [command] [options]")
+		println("\nWithout any specified command or options, the imprint GUI will start.")
+		println("\nAvailable commands:")
+		println("  flash       Flash a disk image to a specific device.")
+		println("\nOptions:")
+		flag.PrintDefaults()
+	}
+	flashFlagSet.Usage = func() {
+		println("Usage: imprint flash [options] <disk image file> <device path>")
+		println("\nOptions:")
+		flashFlagSet.PrintDefaults()
+	}
+}
+
 func main() {
-	if len(os.Args) >= 2 && (os.Args[1] == "-v" || os.Args[1] == "--version") {
+	flag.Parse()
+	if (versionFlag != nil && *versionFlag) || (vFlag != nil && *vFlag) {
 		println("imprint version v" + version)
 		return
 	} else if len(os.Args) >= 2 && os.Args[1] == "flash" {
 		log.SetFlags(0)
 		log.SetOutput(os.Stderr)
 		log.SetPrefix("[flash] ")
-		args, flags := app.ParseCLIFlags(os.Args)
-		if len(args) < 4 {
-			println("Invalid usage: imprint flash <file> <destination> (--use-system-dd) (--disable-validation)")
+		flashFlagSet.Parse(os.Args[2:])
+		args := flashFlagSet.Args()
+		if len(args) != 2 {
+			flashFlagSet.Usage()
 			os.Exit(1)
 		}
+
 		totalPhases := "3"
-		if flags.DisableValidation {
+		if disableValidationFlag != nil && *disableValidationFlag {
 			totalPhases = "2"
 		}
 		log.Println("Phase 1/" + totalPhases + ": Unmounting disk.")
-		if err := app.UnmountDevice(args[2]); err != nil {
+		if err := app.UnmountDevice(args[0]); err != nil {
 			log.Println(err)
-			if !strings.HasSuffix(args[2], "debug.iso") {
+			if !strings.HasSuffix(args[1], "debug.iso") {
 				os.Exit(1)
 			}
 		}
 		log.Println("Phase 2/" + totalPhases + ": Writing ISO to disk.")
-		if flags.UseSystemDd {
-			err := imaging.RunDd(args[1], args[2])
+		if useSystemDdFlag != nil && *useSystemDdFlag {
+			err := imaging.RunDd(args[0], args[1])
 			if err != nil {
 				log.Fatalln(err)
 			}
 		} else {
-			err := imaging.WriteDiskImage(args[1], args[2])
+			err := imaging.WriteDiskImage(args[0], args[1])
 			if errors.Is(err, imaging.ErrReadWriteMismatch) {
 				log.Fatalln("Read/write mismatch! Is the dest too small!")
 			} else if err != nil {
 				log.Fatalln(app.CapitalizeString(err.Error()))
 			}
 		}
-		if !flags.DisableValidation {
+		if disableValidationFlag == nil || !*disableValidationFlag {
 			log.Println("Phase 3/" + totalPhases + ": Validating written image on disk.")
-			err := imaging.ValidateDiskImage(args[1], args[2])
+			err := imaging.ValidateDiskImage(args[0], args[1])
 			if errors.Is(err, imaging.ErrDeviceValidationFailed) {
 				log.Fatalln("Read/write mismatch! Validation of image failed. It is unsafe to boot this device.")
 			} else if err != nil {
@@ -92,6 +119,9 @@ func main() {
 			}
 		}
 		return
+	} else if len(os.Args) >= 2 {
+		flag.Usage()
+		os.Exit(1)
 	}
 	debug := false
 	if val, exists := os.LookupEnv("DEBUG"); exists {

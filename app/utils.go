@@ -5,30 +5,6 @@ import (
 	"strings"
 )
 
-type ConfigurationFlags struct {
-	UseSystemDd       bool
-	DisableValidation bool
-}
-
-func ParseCLIFlags(osArgs []string) ([]string, ConfigurationFlags) {
-	args := []string{}
-	config := ConfigurationFlags{}
-	if len(osArgs) == 0 {
-		return args, config
-	}
-	for _, arg := range osArgs[1:] {
-		switch arg {
-		case "--use-system-dd":
-			config.UseSystemDd = true
-		case "--disable-validation":
-			config.DisableValidation = true
-		default:
-			args = append(args, arg)
-		}
-	}
-	return args, config
-}
-
 func BytesToString(bytes int, binaryPowers bool) string {
 	i := ""
 	var divisor float64 = 1000
