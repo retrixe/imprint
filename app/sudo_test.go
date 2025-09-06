@@ -60,7 +60,7 @@ func (p mockSudoPlatform) ExecCommand(name string, arg ...string) *exec.Cmd {
 	} else if !slices.Equal(arg, p.expectedCmdArg) {
 		p.T.Errorf("ExecCommand called with unexpected args: %v", arg)
 	}
-	return &exec.Cmd{Args: append([]string{name}, arg...)}
+	return &exec.Cmd{Path: name, Args: arg}
 }
 
 func (p mockSudoPlatform) ExecLookPath(file string) (string, error) {
