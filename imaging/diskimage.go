@@ -160,6 +160,7 @@ func ValidateDiskImage(iff string, of string) error {
 	if err != nil {
 		return err
 	}
+	defer dest.Close()
 	bs := 4 * 1024 * 1024 // TODO: Allow configurability?
 	timer := time.NewTimer(time.Second)
 	startTime := time.Now().UnixMilli()
