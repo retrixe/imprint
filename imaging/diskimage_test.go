@@ -21,32 +21,28 @@ func GenerateTempFile(t *testing.T, suffix string, prefill bool) (*os.File, []by
 		t.Fatalf("Failed to create temp file: %v", err)
 	}
 	t.Cleanup(func() {
-		if err := os.Remove(sample.Name()); err != nil {
+		if err := sample.Close(); err != nil {
+			t.Fatalf("Failed to close temp file: %v", err)
+		} else if err := os.Remove(sample.Name()); err != nil {
 			t.Fatalf("Failed to remove temp file: %v", err)
 		}
 	})
 	// Generate random data, checksum it and write it to the file
-	if !prefill {
-		return sample, nil
-	}
-	sampleHash := sha256.New()
-	for i := 0; i < 128; i++ { // 128MB
-		data := make([]byte, 1024*1024) // 1MB
-		_, _ = rand.Read(data)
-		_, err = sampleHash.Write(data)
-		if err != nil {
-			t.Fatalf("Failed to write to hash: %v", err)
+	if prefill {
+		sampleHash := sha256.New()
+		for i := 0; i < 128; i++ { // 128MB
+			data := make([]byte, 1024*1024) // 1MB
+			if n, err := rand.Read(data); err != nil || n != len(data) {
+				t.Fatalf("Failed to read random data: %v", err)
+			} else if n, err := sampleHash.Write(data); err != nil || n != len(data) {
+				t.Fatalf("Failed to write to hash: %v", err)
+			} else if n, err := sample.Write(data); err != nil || n != len(data) {
+				t.Fatalf("Failed to write to temp file: %v", err)
+			}
 		}
-		_, err := sample.Write(data)
-		if err != nil {
-			t.Fatalf("Failed to write to temp file: %v", err)
-		}
+		return sample, sampleHash.Sum(nil)
 	}
-	if err = sample.Close(); err != nil {
-		t.Fatalf("Failed to close temp file: %v", err)
-	}
-	sampleSum := sampleHash.Sum(nil)
-	return sample, sampleSum
+	return sample, nil
 }
 
 func GenerateTempFolder(t *testing.T, suffix string) string {
@@ -135,11 +131,6 @@ func TestFlashAndValidation(t *testing.T) {
 		}
 	})
 	t.Run("ValidateBlockDeviceContent executes correctly", func(t *testing.T) {
-		defer (func() {
-			if err := recover(); err != nil {
-				t.Errorf("Validation failed: %v", err)
-			}
-		})()
 		err := ValidateDiskImage(sample.Name(), dest.Name())
 		if err != nil {
 			t.Errorf("Validation failed: %v", err)
@@ -152,7 +143,6 @@ func TestFlashAndValidation(t *testing.T) {
 			t.Errorf("Failed to truncate dest file: %v", err)
 		}
 		// ValidateBlockDeviceContent should fail
-		defer recover()
 		err = ValidateDiskImage(sample.Name(), dest.Name())
 		if err == nil {
 			t.Errorf("Validation should have failed due to data corruption")
