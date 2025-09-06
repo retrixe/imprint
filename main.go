@@ -15,6 +15,7 @@ import (
 	_ "embed"
 
 	"github.com/retrixe/imprint/app"
+	"github.com/retrixe/imprint/imaging"
 	"github.com/sqweek/dialog"
 	webview "github.com/webview/webview_go"
 )
@@ -69,13 +70,13 @@ func main() {
 		}
 		log.Println("Phase 2/" + totalPhases + ": Writing ISO to disk.")
 		if flags.UseSystemDd {
-			err := app.RunDd(args[1], args[2])
+			err := imaging.RunDd(args[1], args[2])
 			if err != nil {
 				log.Fatalln(err)
 			}
 		} else {
-			err := app.FlashFileToBlockDevice(args[1], args[2])
-			if errors.Is(err, app.ErrReadWriteMismatch) {
+			err := imaging.WriteDiskImage(args[1], args[2])
+			if errors.Is(err, imaging.ErrReadWriteMismatch) {
 				log.Fatalln("Read/write mismatch! Is the dest too small!")
 			} else if err != nil {
 				log.Fatalln(app.CapitalizeString(err.Error()))
@@ -83,8 +84,8 @@ func main() {
 		}
 		if !flags.DisableValidation {
 			log.Println("Phase 3/" + totalPhases + ": Validating written image on disk.")
-			err := app.ValidateBlockDeviceContent(args[1], args[2])
-			if errors.Is(err, app.ErrDeviceValidationFailed) {
+			err := imaging.ValidateDiskImage(args[1], args[2])
+			if errors.Is(err, imaging.ErrDeviceValidationFailed) {
 				log.Fatalln("Read/write mismatch! Validation of image failed. It is unsafe to boot this device.")
 			} else if err != nil {
 				log.Fatalln(app.CapitalizeString(err.Error()))

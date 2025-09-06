@@ -1,4 +1,4 @@
-package app
+package imaging
 
 import (
 	"bytes"
@@ -100,28 +100,28 @@ func TestFlashAndValidation(t *testing.T) {
 	dest, _ := GenerateTempFile(t, "dest", false)
 	t.Run("FlashFileToBlockDevice fails when either file is folder", func(t *testing.T) {
 		var errIsDir *IsDirectoryError
-		err := FlashFileToBlockDevice(sampleDir, dest.Name())
+		err := WriteDiskImage(sampleDir, dest.Name())
 		if !errors.As(err, &errIsDir) {
 			t.Errorf("Expected IsDirectoryError, got: %v", err)
 		}
-		err = FlashFileToBlockDevice(sample.Name(), sampleDir)
+		err = WriteDiskImage(sample.Name(), sampleDir)
 		if !errors.As(err, &errIsDir) {
 			t.Errorf("Expected IsDirectoryError, got: %v", err)
 		}
 	})
 	t.Run("FlashFileToBlockDevice fails when either file does not exist", func(t *testing.T) {
 		var errNotExists *NotExistsError
-		err := FlashFileToBlockDevice(sample.Name(), filepath.Join(sampleDir, "nonexistent"))
+		err := WriteDiskImage(sample.Name(), filepath.Join(sampleDir, "nonexistent"))
 		if !errors.As(err, &errNotExists) {
 			t.Errorf("Expected NotExistsError, got: %v", err)
 		}
-		err = FlashFileToBlockDevice(filepath.Join(sampleDir, "nonexistent"), dest.Name())
+		err = WriteDiskImage(filepath.Join(sampleDir, "nonexistent"), dest.Name())
 		if !errors.As(err, &errNotExists) {
 			t.Errorf("Expected NotExistsError, got: %v", err)
 		}
 	})
 	t.Run("FlashFileToBlockDevice executes correctly", func(t *testing.T) {
-		err := FlashFileToBlockDevice(sample.Name(), dest.Name())
+		err := WriteDiskImage(sample.Name(), dest.Name())
 		if err != nil {
 			t.Errorf("FlashFileToBlockDevice failed: %v", err)
 		} else if checksum, err := ChecksumFile(t, dest.Name()); err != nil {
@@ -136,7 +136,7 @@ func TestFlashAndValidation(t *testing.T) {
 				t.Errorf("Validation failed: %v", err)
 			}
 		})()
-		err := ValidateBlockDeviceContent(sample.Name(), dest.Name())
+		err := ValidateDiskImage(sample.Name(), dest.Name())
 		if err != nil {
 			t.Errorf("Validation failed: %v", err)
 		}
@@ -149,7 +149,7 @@ func TestFlashAndValidation(t *testing.T) {
 		}
 		// ValidateBlockDeviceContent should fail
 		defer recover()
-		err = ValidateBlockDeviceContent(sample.Name(), dest.Name())
+		err = ValidateDiskImage(sample.Name(), dest.Name())
 		if err == nil {
 			t.Errorf("Validation should have failed due to data corruption")
 		} else if !errors.Is(err, ErrDeviceValidationFailed) {
