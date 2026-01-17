@@ -70,6 +70,7 @@ func UnmountDevice(device string) error {
 		return ErrNotBlockDevice
 	}
 	// Unmount all partitions of disk using `diskutil`.
+	// TODO: is there a syscall here?
 	_, err = exec.Command("diskutil", "unmountDisk", device).Output()
 	if err != nil {
 		return err
