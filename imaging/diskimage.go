@@ -111,18 +111,15 @@ func WriteDiskImage(iff string, of string) error {
 	}
 	defer dest.Close()
 	bs := 4 * 1024 * 1024 // TODO: Allow configurability?
-	timer := time.NewTimer(time.Second)
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
 	startTime := time.Now().UnixMilli()
 	var total int
 	buf := make([]byte, bs)
 	for {
-		n1, err := src.Read(buf)
-		if err != nil {
-			if io.EOF == err {
-				break
-			} else {
-				return fmt.Errorf("encountered error while reading file! %w", err)
-			}
+		n1, errRead := src.Read(buf)
+		if errRead != nil && errRead != io.EOF {
+			return fmt.Errorf("encountered error while reading file! %w", errRead)
 		}
 		n2, err := dest.Write(buf[:n1])
 		if err != nil {
@@ -131,10 +128,13 @@ func WriteDiskImage(iff string, of string) error {
 			return ErrReadWriteMismatch
 		}
 		total += n1
-		if len(timer.C) > 0 {
+		if errRead == io.EOF {
+			break
+		}
+		select {
+		case <-ticker.C:
 			print(FormatProgress(total, time.Now().UnixMilli()-startTime, "copied", false) + "\r")
-			<-timer.C
-			timer.Reset(time.Second)
+		default:
 		}
 	}
 	// t, _ := io.CopyBuffer(dest, file, buf); total = int(t)
@@ -162,28 +162,32 @@ func ValidateDiskImage(iff string, of string) error {
 	}
 	defer dest.Close()
 	bs := 4 * 1024 * 1024 // TODO: Allow configurability?
-	timer := time.NewTimer(time.Second)
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
 	startTime := time.Now().UnixMilli()
 	var total int
 	buf1 := make([]byte, bs)
 	buf2 := make([]byte, bs)
 	for {
 		n1, err1 := src.Read(buf1)
-		n2, err2 := dest.Read(buf2)
-		if err1 == io.EOF {
-			break
-		} else if err1 != nil {
+		if err1 != nil && err1 != io.EOF {
 			return fmt.Errorf("encountered error while validating device! %w", err1)
-		} else if err2 != nil {
+		}
+		n2, err2 := io.ReadFull(dest, buf2[:n1])
+		if err2 != nil { // There should not be any EOF here
 			return fmt.Errorf("encountered error while validating device! %w", err2)
-		} else if n2 < n1 || !bytes.Equal(buf1[:n1], buf2[:n1]) {
+		}
+		if !bytes.Equal(buf1[:n1], buf2[:n2]) {
 			return ErrDeviceValidationFailed
 		}
 		total += n1
-		if len(timer.C) > 0 {
+		if err1 == io.EOF {
+			break
+		}
+		select {
+		case <-ticker.C:
 			print(FormatProgress(total, time.Now().UnixMilli()-startTime, "validated", false) + "\r")
-			<-timer.C
-			timer.Reset(time.Second)
+		default:
 		}
 	}
 	println(FormatProgress(total, time.Now().UnixMilli()-startTime, "validated", true))
