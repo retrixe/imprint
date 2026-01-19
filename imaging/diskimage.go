@@ -174,8 +174,10 @@ func ValidateDiskImage(iff string, of string) error {
 			return fmt.Errorf("encountered error while validating device! %w", err1)
 		}
 		n2, err2 := io.ReadFull(dest, buf2[:n1])
-		if err2 != nil { // There should not be any EOF here
+		if err2 != nil && err2 != io.EOF && err2 != io.ErrUnexpectedEOF {
 			return fmt.Errorf("encountered error while validating device! %w", err2)
+		} else if err2 != nil {
+			return ErrDeviceValidationFailed
 		}
 		if !bytes.Equal(buf1[:n1], buf2[:n2]) {
 			return ErrDeviceValidationFailed
