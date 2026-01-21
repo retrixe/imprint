@@ -8,10 +8,11 @@ import (
 	"testing"
 
 	"github.com/retrixe/imprint/app"
+	"github.com/retrixe/imprint/imaging"
 )
 
 type mockSudoPlatform struct {
-	app.Platform
+	imaging.Platform
 	*testing.T
 	os             string
 	elevated       bool
@@ -100,7 +101,7 @@ func TestElevatedCommand(t *testing.T) {
 	t.Parallel()
 	testCases := []struct {
 		name            string
-		platform        app.Platform
+		platform        imaging.Platform
 		providedCmdName string
 		providedCmdArgs []string
 		expectedCmdName string

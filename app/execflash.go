@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/retrixe/imprint/imaging"
 )
 
 // DdProgress is a struct containing progress of the dd operation.
@@ -49,7 +51,7 @@ func CopyConvert(iff string, of string) (chan DdProgress, io.WriteCloser, error)
 		return nil, nil, err
 	}
 	ddFlag := "--use-system-dd=" + strconv.FormatBool(os.Getenv("__USE_SYSTEM_DD") == "true")
-	cmd, err := ElevatedCommand(SystemPlatform, executable, "flash", ddFlag, iff, of)
+	cmd, err := ElevatedCommand(imaging.SystemPlatform, executable, "flash", ddFlag, iff, of)
 	if err != nil {
 		return nil, nil, err
 	}

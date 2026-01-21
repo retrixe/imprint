@@ -1,6 +1,6 @@
 //go:build !darwin && !windows
 
-package app
+package imaging
 
 import (
 	"io/fs"

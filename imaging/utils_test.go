@@ -1,9 +1,9 @@
-package app_test
+package imaging_test
 
 import (
 	"testing"
 
-	"github.com/retrixe/imprint/app"
+	"github.com/retrixe/imprint/imaging"
 )
 
 func TestBytesToString(t *testing.T) {
@@ -29,7 +29,7 @@ func TestBytesToString(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
-			result := app.BytesToString(testCase.bytes, testCase.binaryPowers)
+			result := imaging.BytesToString(testCase.bytes, testCase.binaryPowers)
 			if result != testCase.expected {
 				t.Errorf("expected %s, got %s", testCase.expected, result)
 			}
@@ -59,7 +59,7 @@ func TestCapitalizeString(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
-			result := app.CapitalizeString(testCase.input)
+			result := imaging.CapitalizeString(testCase.input)
 			if result != testCase.expected {
 				t.Errorf("expected %s, got %s", testCase.expected, result)
 			}

@@ -5,10 +5,12 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/retrixe/imprint/imaging"
 )
 
 // IsElevated returns if the application is running with elevated privileges.
-func IsElevated(platform Platform) bool {
+func IsElevated(platform imaging.Platform) bool {
 	if platform.RuntimeGOOS() == "windows" { // https://stackoverflow.com/a/59147866
 		f, err := platform.OsOpen("\\\\.\\PHYSICALDRIVE0")
 		if f != nil {
@@ -31,7 +33,7 @@ var ErrWindowsNoOp = errors.New(
 )
 
 // ElevatedCommand executes a command with elevated privileges.
-func ElevatedCommand(platform Platform, name string, arg ...string) (*exec.Cmd, error) {
+func ElevatedCommand(platform imaging.Platform, name string, arg ...string) (*exec.Cmd, error) {
 	if IsElevated(platform) {
 		return platform.ExecCommand(name, arg...), nil
 	} else if platform.RuntimeGOOS() == "windows" {
@@ -43,7 +45,7 @@ func ElevatedCommand(platform Platform, name string, arg ...string) (*exec.Cmd, 
 	return elevatedLinuxCommand(platform, name, arg...)
 }
 
-func elevatedLinuxCommand(platform Platform, name string, arg ...string) (*exec.Cmd, error) {
+func elevatedLinuxCommand(platform imaging.Platform, name string, arg ...string) (*exec.Cmd, error) {
 	// We used to prefer gksudo over pkexec since it enabled a better prompt.
 	// However, gksudo cannot run multiple commands concurrently.
 	pkexec, err := platform.ExecLookPath("pkexec")
@@ -64,7 +66,7 @@ func elevatedLinuxCommand(platform Platform, name string, arg ...string) (*exec.
 	return cmd, nil
 }
 
-func elevatedMacCommand(platform Platform, name string, args ...string) (*exec.Cmd, error) {
+func elevatedMacCommand(platform imaging.Platform, name string, args ...string) (*exec.Cmd, error) {
 	osascript, err := platform.ExecLookPath("osascript")
 	if err != nil {
 		return nil, ErrOsascriptNotFound

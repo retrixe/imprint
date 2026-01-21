@@ -89,7 +89,7 @@ func main() {
 			totalPhases = "2"
 		}
 		log.Println("Phase 1/" + totalPhases + ": Unmounting disk.")
-		if err := app.UnmountDevice(args[0]); err != nil {
+		if err := imaging.UnmountDevice(args[0]); err != nil {
 			log.Println(err)
 			if !strings.HasSuffix(args[1], "debug.iso") {
 				os.Exit(1)
@@ -106,7 +106,7 @@ func main() {
 			if errors.Is(err, imaging.ErrReadWriteMismatch) {
 				log.Fatalln("Read/write mismatch! Is the dest too small!")
 			} else if err != nil {
-				log.Fatalln(app.CapitalizeString(err.Error()))
+				log.Fatalln(imaging.CapitalizeString(err.Error()))
 			}
 		}
 		if disableValidationFlag == nil || !*disableValidationFlag {
@@ -115,7 +115,7 @@ func main() {
 			if errors.Is(err, imaging.ErrDeviceValidationFailed) {
 				log.Fatalln("Read/write mismatch! Validation of image failed. It is unsafe to boot this device.")
 			} else if err != nil {
-				log.Fatalln(app.CapitalizeString(err.Error()))
+				log.Fatalln(imaging.CapitalizeString(err.Error()))
 			}
 		}
 		return
@@ -140,7 +140,7 @@ func main() {
 
 	// Bind a function to request refresh of devices attached.
 	w.Bind("refreshDevices", func() {
-		devices, err := app.GetDevices(app.SystemPlatform)
+		devices, err := imaging.GetDevices(imaging.SystemPlatform)
 		if err != nil {
 			w.Eval("setDialogReact(" + ParseToJsString("Error: "+err.Error()) + ")")
 			return
@@ -148,7 +148,7 @@ func main() {
 		if os.Getenv("DEBUG") == "true" {
 			workdir, err := os.Getwd()
 			if err == nil {
-				devices = append(devices, app.Device{
+				devices = append(devices, imaging.Device{
 					Name:  filepath.Join(workdir, "debug.iso"),
 					Model: "Write to debug ISO",
 					Bytes: 10000000000,

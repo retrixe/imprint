@@ -14,8 +14,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/retrixe/imprint/app"
 )
 
 // ErrDeviceValidationFailed is returned when the image on the device is corrupt
@@ -44,21 +42,21 @@ func (e *NotExistsError) Error() string {
 // There's some minor differences in output with dd, mainly decimal places and kB vs KB.
 func FormatProgress(total int, delta int64, action string, floatPrec bool) string {
 	str := strconv.Itoa(total) + " bytes " +
-		"(" + app.BytesToString(total, false) + ", " + app.BytesToString(total, true) + ") " + action + ", "
+		"(" + BytesToString(total, false) + ", " + BytesToString(total, true) + ") " + action + ", "
 	if floatPrec {
 		timeDifference := float64(delta) / 1000
 		speed := 0
 		if timeDifference > 0 {
 			speed = int(float64(total) / timeDifference)
 		}
-		str += strconv.FormatFloat(timeDifference, 'f', 3, 64) + " s, " + app.BytesToString(speed, false) + "/s"
+		str += strconv.FormatFloat(timeDifference, 'f', 3, 64) + " s, " + BytesToString(speed, false) + "/s"
 	} else {
 		timeDifference := int(delta) / 1000
 		speed := 0
 		if timeDifference > 0 {
 			speed = total / timeDifference
 		}
-		str += strconv.Itoa(timeDifference) + " s, " + app.BytesToString(speed, false) + "/s"
+		str += strconv.Itoa(timeDifference) + " s, " + BytesToString(speed, false) + "/s"
 	}
 	return str
 }

@@ -1,6 +1,6 @@
 //go:build !darwin && !windows
 
-package app_test
+package imaging_test
 
 import (
 	"errors"
@@ -9,11 +9,11 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/retrixe/imprint/app"
+	"github.com/retrixe/imprint/imaging"
 )
 
 type mockDevicesPlatform struct {
-	app.Platform
+	imaging.Platform
 	*testing.T
 	allowedCmds map[string]mockDevicesPlatformCommand
 }
@@ -57,13 +57,13 @@ func TestGetDevices(t *testing.T) {
 	testCases := []struct {
 		name            string
 		cmds            map[string]mockDevicesPlatformCommand
-		expectedDevices []app.Device
+		expectedDevices []imaging.Device
 		expectedError   error
 	}{
 		{
 			"fails upon missing lsblk",
 			map[string]mockDevicesPlatformCommand{},
-			[]app.Device{},
+			[]imaging.Device{},
 			exec.ErrNotFound,
 		},
 		{
@@ -74,7 +74,7 @@ func TestGetDevices(t *testing.T) {
 					err:  lsblkExitError,
 				},
 			},
-			[]app.Device{},
+			[]imaging.Device{},
 			lsblkExitError,
 		},
 		{
@@ -85,7 +85,7 @@ func TestGetDevices(t *testing.T) {
 					output: []byte("KNAME   TYPE RM          SIZE MODEL\nzram0   disk  0    8589934592 \n"),
 				},
 			},
-			[]app.Device{},
+			[]imaging.Device{},
 			exec.ErrNotFound,
 		},
 		{
@@ -100,7 +100,7 @@ func TestGetDevices(t *testing.T) {
 					err:  dfExitError,
 				},
 			},
-			[]app.Device{},
+			[]imaging.Device{},
 			dfExitError,
 		},
 		{
@@ -119,7 +119,7 @@ func TestGetDevices(t *testing.T) {
 						"/dev/mapper/luks-283e2319-0541-4588-93ef-a2687dd09fc7 535805952 503377676  28342100  95% /home\n"),
 				},
 			},
-			[]app.Device{},
+			[]imaging.Device{},
 			nil,
 		},
 		{
@@ -139,8 +139,8 @@ func TestGetDevices(t *testing.T) {
 						"/dev/mapper/luks-283e2319-0541-4588-93ef-a2687dd09fc7 535805952 503377676  28342100  95% /home\n"),
 				},
 			},
-			[]app.Device{
-				{Name: "/dev/sda", Model: "Cruzer", Size: app.BytesToString(2000748032, false), Bytes: 2000748032},
+			[]imaging.Device{
+				{Name: "/dev/sda", Model: "Cruzer", Size: imaging.BytesToString(2000748032, false), Bytes: 2000748032},
 			},
 			nil,
 		},
@@ -162,9 +162,9 @@ func TestGetDevices(t *testing.T) {
 						"/dev/mapper/luks-283e2319-0541-4588-93ef-a2687dd09fc7 535805952 503377676  28342100  95% /home\n"),
 				},
 			},
-			[]app.Device{
-				{Name: "/dev/sda", Model: "Cruzer", Size: app.BytesToString(2000748032, false), Bytes: 2000748032},
-				{Name: "/dev/sdb", Model: "SanDisk 3.2Gen1", Size: app.BytesToString(61530439680, false), Bytes: 61530439680},
+			[]imaging.Device{
+				{Name: "/dev/sda", Model: "Cruzer", Size: imaging.BytesToString(2000748032, false), Bytes: 2000748032},
+				{Name: "/dev/sdb", Model: "SanDisk 3.2Gen1", Size: imaging.BytesToString(61530439680, false), Bytes: 61530439680},
 			},
 			nil,
 		},
@@ -173,8 +173,8 @@ func TestGetDevices(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
-			devices, err := app.GetDevices(mockDevicesPlatform{
-				Platform:    app.SystemPlatform,
+			devices, err := imaging.GetDevices(mockDevicesPlatform{
+				Platform:    imaging.SystemPlatform,
 				T:           t,
 				allowedCmds: testCase.cmds,
 			})
