@@ -50,7 +50,7 @@ var versionFlag = flag.Bool("version", false, "Show version")
 
 var flashFlagSet = flag.NewFlagSet("flash", flag.ExitOnError)
 var useSystemDdFlag = flashFlagSet.Bool("use-system-dd", false, "Use dd executable from OS to flash disk images")
-var disableValidationFlag = flashFlagSet.Bool("disable-validation", false, "Disable validation of written image")
+var skipValidationFlag = flashFlagSet.Bool("skip-validation", false, "Skip validation of written image")
 
 func init() {
 	flag.Usage = func() {
@@ -85,7 +85,7 @@ func main() {
 		}
 
 		totalPhases := "3"
-		if disableValidationFlag != nil && *disableValidationFlag {
+		if skipValidationFlag != nil && *skipValidationFlag {
 			totalPhases = "2"
 		}
 		log.Println("Phase 1/" + totalPhases + ": Unmounting disk.")
@@ -109,7 +109,7 @@ func main() {
 				log.Fatalln(imaging.CapitalizeString(err.Error()))
 			}
 		}
-		if disableValidationFlag == nil || !*disableValidationFlag {
+		if skipValidationFlag == nil || !*skipValidationFlag {
 			log.Println("Phase 3/" + totalPhases + ": Validating written image on disk.")
 			err := imaging.ValidateDiskImage(args[0], args[1])
 			if errors.Is(err, imaging.ErrDeviceValidationFailed) {
