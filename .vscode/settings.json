@@ -6,7 +6,10 @@
   "eslint.nodePath": ".yarn/sdks",
   "typescript.tsdk": ".yarn/sdks/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
-  "editor.defaultFormatter": "biomejs.biome",
+  "editor.defaultFormatter": "oxc.oxc-vscode", // Oxfmt is broken with Yarn PnP...
+  // Massive hack but it works outside Windows
+  // See https://github.com/oxc-project/oxc-vscode/issues/11
+  "oxc.path.oxfmt": ".vscode/oxfmt.sh",
   "[go]": {
     "editor.defaultFormatter": "golang.go"
   }

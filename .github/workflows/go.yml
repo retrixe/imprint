@@ -2,9 +2,9 @@ name: Go CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
@@ -14,44 +14,44 @@ jobs:
       matrix:
         os: [ubuntu-22.04, macos-latest, windows-latest]
     steps:
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v4
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v4
 
-    - name: Enable Corepack
-      run: npm install --global --force corepack && corepack enable
+      - name: Enable Corepack
+        run: npm install --global --force corepack && corepack enable
 
-    - name: Set up latest Node.js LTS
-      uses: actions/setup-node@v4
-      with:
-        cache: 'yarn'
-        node-version: lts/*
+      - name: Set up latest Node.js LTS
+        uses: actions/setup-node@v4
+        with:
+          cache: 'yarn'
+          node-version: lts/*
 
-    - name: Set up Go 1.22
-      uses: actions/setup-go@v4
-      with:
-        cache: true
-        go-version: ^1.22
-      id: go
+      - name: Set up Go 1.22
+        uses: actions/setup-go@v4
+        with:
+          cache: true
+          go-version: ^1.22
+        id: go
 
-    - name: Install dependencies on Ubuntu
-      run: |
-        sudo apt-get update
-        sudo apt-get install --no-install-recommends libwebkit2gtk-4.0-dev
-      if: ${{ success() && matrix.os == 'ubuntu-22.04' }}
+      - name: Install dependencies on Ubuntu
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends libwebkit2gtk-4.0-dev
+        if: ${{ success() && matrix.os == 'ubuntu-22.04' }}
 
-    - name: Get dependencies
-      run: |
-        yarn install --immutable
-        go get -v -t -d ./...
+      - name: Get dependencies
+        run: |
+          yarn install --immutable
+          go get -v -t -d ./...
 
-    - name: Build
-      run: yarn build
+      - name: Build
+        run: yarn build
 
-    - name: Test
-      run: yarn lint && go test -v ./...
+      - name: Test
+        run: yarn lint && go test -v ./...
 
-    - name: Upload Build Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: imprint-${{ runner.os }}
-        path: imprint*
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: imprint-${{ runner.os }}
+          path: imprint*

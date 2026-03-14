@@ -1,0 +1,9 @@
+{
+  "$schema": "./.yarn/unplugged/oxfmt-npm-0.40.0-fee80278f6/node_modules/oxfmt/configuration_schema.json",
+  "ignorePatterns": [".yarn"],
+  "semi": false,
+  "singleQuote": true,
+  "jsxSingleQuote": true,
+  "arrowParens": "avoid",
+  "sortImports": {}
+}

@@ -1,5 +1,6 @@
 import { CssBaseline, CssVarsProvider, extendTheme } from '@mui/joy'
 import { createRoot } from 'react-dom/client'
+
 import App from './App'
 
 declare global {

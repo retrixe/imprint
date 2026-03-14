@@ -1,13 +1,13 @@
 {
   "name": "imprint",
   "version": "1.0.0-alpha.2",
-  "description": "An small, intuitive app to flash ISOs and disk images to external drives e.g. USB drives.",
-  "repository": "https://github.com/retrixe/imprint.git",
-  "author": "retrixe",
-  "license": "Apache-2.0",
   "private": true,
+  "description": "An small, intuitive app to flash ISOs and disk images to external drives e.g. USB drives.",
+  "license": "Apache-2.0",
+  "author": "retrixe",
+  "repository": "https://github.com/retrixe/imprint.git",
   "scripts": {
-    "lint": "tsc --noEmit && biome check && eslint --cache --cache-strategy content --cache-location .parcel-cache/ .",
+    "lint": "tsc --noEmit && oxfmt --check && eslint --cache --cache-strategy content --cache-location .parcel-cache/ .",
     "dev": "parcel renderer/index.html & DEBUG=true go run -ldflags=\"-s -w -X main.overrideUrl=http://localhost:1234/\" . & echo Starting...",
     "start": "parcel build renderer/index.tsx && DEBUG=true go run .",
     "build": "parcel build renderer/index.tsx --no-source-maps && yarn build:go",
@@ -15,7 +15,6 @@
     "build:go:default": "go build -ldflags=\"-s -w\" -o imprint -v",
     "build:go:windows": "go build -ldflags=\"-s -w -H windowsgui\" -o imprint.exe -v"
   },
-  "packageManager": "yarn@4.13.0",
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
@@ -25,7 +24,6 @@
     "react-dom": "^19.2.4"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.7",
     "@eslint/js": "^9.39.4",
     "@parcel/transformer-sass": "2.16.4",
     "@tsconfig/vite-react": "^7.0.2",
@@ -40,6 +38,7 @@
     "eslint-plugin-promise": "^7.2.1",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
+    "oxfmt": "^0.40.0",
     "parcel": "^2.16.4",
     "process": "^0.11.10",
     "run-script-os": "^1.1.6",
@@ -49,6 +48,7 @@
   "engines": {
     "browsers": "ie >= 9"
   },
+  "packageManager": "yarn@4.13.0",
   "output": "dist/index.js",
   "targets": {
     "output": {

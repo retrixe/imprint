@@ -10,6 +10,7 @@ import {
 } from '@mui/joy'
 import JSBI from 'jsbi'
 import { useEffect, useState } from 'react'
+
 import * as styles from './ProgressScreen.module.scss'
 
 function bytesToString(bytes: number, binaryPowers = false): string {
