@@ -20,11 +20,11 @@ jobs:
     - name: Enable Corepack
       run: npm install --global --force corepack && corepack enable
 
-    - name: Set up latest Node.js
+    - name: Set up latest Node.js LTS
       uses: actions/setup-node@v4
       with:
         cache: 'yarn'
-        node-version: latest
+        node-version: lts/*
 
     - name: Set up Go 1.22
       uses: actions/setup-go@v4
@@ -49,7 +49,7 @@ jobs:
 
     - name: Test
       run: yarn lint && go test -v ./...
-    
+
     - name: Upload Build Artifacts
       uses: actions/upload-artifact@v4
       with:
