@@ -18,6 +18,7 @@ type Device struct {
 
 // GetDevices returns the list of USB devices available to read/write from.
 func GetDevices(platform Platform) ([]Device, error) {
+	// FIXME: Write unit tests
 	res, err := platform.ExecCommandOutput(platform.ExecCommand("diskutil", "info", "-all"))
 	if err != nil {
 		return nil, err
@@ -62,6 +63,7 @@ func GetDevices(platform Platform) ([]Device, error) {
 
 // UnmountDevice unmounts a block device's partitons before flashing to it.
 func UnmountDevice(device string) error {
+	// FIXME: Write unit tests
 	// Check if device exists.
 	stat, err := os.Stat(device)
 	if err != nil {
@@ -70,7 +72,7 @@ func UnmountDevice(device string) error {
 		return ErrNotBlockDevice
 	}
 	// Unmount all partitions of disk using `diskutil`.
-	// TODO: is there a syscall here?
+	// FIXME: is there a syscall here?
 	_, err = exec.Command("diskutil", "unmountDisk", device).Output()
 	if err != nil {
 		return err

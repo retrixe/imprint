@@ -45,6 +45,7 @@ func (err *DdError) Error() string {
 // because killing the process doesn't work with pkexec/osascript,
 // and this approach enables us to reimplement dd fully.
 func CopyConvert(iff string, of string) (chan DdProgress, io.WriteCloser, error) {
+	// FIXME: Write unit tests
 	channel := make(chan DdProgress)
 	executable, err := os.Executable()
 	if err != nil {
@@ -123,6 +124,7 @@ func CopyConvert(iff string, of string) (chan DdProgress, io.WriteCloser, error)
 
 // dropCRLF drops a terminal \r or \n from the data.
 func dropCRLF(data []byte) []byte {
+	// FIXME: Write unit tests
 	if len(data) > 0 && (data[len(data)-1] == '\r' || data[len(data)-1] == '\n') {
 		return data[0 : len(data)-1]
 	}
@@ -135,6 +137,7 @@ func dropCRLF(data []byte) []byte {
 // newline. In regular expression notation, it is `\r|\n`. The last
 // non-empty line of input will be returned even if it has no newline.
 func ScanCRLFLines(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	// FIXME: Write unit tests
 	if atEOF && len(data) == 0 {
 		return 0, nil, nil
 	}

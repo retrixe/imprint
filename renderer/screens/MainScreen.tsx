@@ -94,7 +94,7 @@ const MainScreen = ({
 
       <br />
       <div className={styles['flash-progress-container']}>
-        {/* FIXME: Add Settings dialog to disable validation and toggle dark mode. */}
+        {/* TODO: Add Settings dialog to disable validation and toggle dark mode. */}
         <div className={styles['full-width']} />
         <Button onClick={onFlashClick}>Flash</Button>
       </div>

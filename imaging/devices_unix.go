@@ -30,7 +30,7 @@ func GetDevices(platform Platform) ([]Device, error) {
 		return nil, err
 	}
 
-	// TODO: This would be better as an /etc/fstab check, to be honest... This is unreliable.
+	// FIXME: This would be better as an /etc/fstab check, to be honest... This is unreliable.
 	bootDevices, err := platform.ExecCommandOutput(platform.ExecCommand("df", "/", "/home"))
 	if err != nil {
 		return nil, err
@@ -79,7 +79,7 @@ func UnmountDevice(device string) error {
 		return ErrNotBlockDevice
 	}
 	// Discover mounted device partitions.
-	// TODO: Replace with syscall?
+	// FIXME: Read /etc/mtab instead
 	mounts, err := exec.Command("mount").Output()
 	if err != nil {
 		return err
@@ -88,7 +88,7 @@ func UnmountDevice(device string) error {
 	for _, mount := range strings.Split(string(mounts), "\n") {
 		if strings.HasPrefix(mount, device) {
 			partition := strings.Fields(mount)[0]
-			// TODO: Use syscall.Unmount instead?
+			// FIXME: Use syscall.Unmount instead?
 			err = exec.Command("umount", partition).Run()
 			if err != nil {
 				return err
