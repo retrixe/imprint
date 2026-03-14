@@ -93,18 +93,18 @@ func CopyConvert(iff string, of string) (chan DdProgress, io.WriteCloser, error)
 			text := scanner.Text()
 			println(text)
 			lastLine = text
-			firstSpace := strings.Index(text, " ")
+			before, after, ok := strings.Cut(text, " ")
 			if strings.HasPrefix(text, "[flash] Phase") {
-				phase = text[firstSpace+1:]
+				phase = after
 				channel <- DdProgress{
 					Bytes: 0,
 					Speed: "0 MB/s",
 					Phase: phase,
 				}
-			} else if firstSpace != -1 && strings.HasPrefix(text[firstSpace+1:], "bytes (") {
+			} else if ok && strings.HasPrefix(after, "bytes (") {
 				// TODO: Probably handle error, but we can't tell full dd behavior without seeing the code.
 				// Well, custom dd is the default now anyways.
-				bytes, _ := strconv.Atoi(text[:firstSpace])
+				bytes, _ := strconv.Atoi(before)
 				split := strings.Split(text, ", ")
 				mutex.Lock()
 				if channelClosed {
