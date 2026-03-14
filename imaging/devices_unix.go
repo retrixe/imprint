@@ -71,6 +71,7 @@ func GetDevices(platform Platform) ([]Device, error) {
 
 // UnmountDevice unmounts a block device's partitons before flashing to it.
 func UnmountDevice(device string) error {
+	// FIXME: Write unit tests
 	// Check if device is mounted.
 	stat, err := os.Stat(device)
 	if err != nil {
@@ -79,8 +80,7 @@ func UnmountDevice(device string) error {
 		return ErrNotBlockDevice
 	}
 	// Discover mounted device partitions.
-	// FIXME: Read /etc/mtab instead
-	mounts, err := exec.Command("mount").Output()
+	mounts, err := os.ReadFile("/proc/mounts")
 	if err != nil {
 		return err
 	}
