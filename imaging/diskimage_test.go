@@ -60,16 +60,41 @@ func ChecksumFile(t *testing.T, file string) ([]byte, error) {
 	return fileHash.Sum(nil), nil
 }
 
-func TestRunDd(t *testing.T) {
+func TestFlashAndValidationWithDd(t *testing.T) {
 	t.Parallel()
-	// TODO: This should be as comprehensive as FlashFileToBlockDevice,
-	//       but we don't care much about dd support beyond it working...
 	if _, err := exec.LookPath("dd"); err != nil {
 		t.Skip("dd not found")
 	}
 	sample, sampleSum := GenerateTempFile(t, "sample", true)
+	sampleDir := t.TempDir()
 	dest, _ := GenerateTempFile(t, "dest", false)
-	t.Run("dd executes correctly", func(t *testing.T) {
+	t.Run("RunDd fails when either file is folder", func(t *testing.T) {
+		t.SkipNow() // We don't want to test RunDd failures since it doesn't have proper error handling,
+		// and this isn't a supported configuration either.
+		var errIsDir *IsDirectoryError
+		err := RunDd(sampleDir, dest.Name())
+		if !errors.As(err, &errIsDir) {
+			t.Errorf("Expected IsDirectoryError, got: %v", err)
+		}
+		err = RunDd(sample.Name(), sampleDir)
+		if !errors.As(err, &errIsDir) {
+			t.Errorf("Expected IsDirectoryError, got: %v", err)
+		}
+	})
+	t.Run("RunDd fails when either file does not exist", func(t *testing.T) {
+		t.SkipNow() // We don't want to test RunDd failures since it doesn't have proper error handling,
+		// and this isn't a supported configuration either.
+		var errNotExists *NotExistsError
+		err := RunDd(sample.Name(), filepath.Join(sampleDir, "nonexistent"))
+		if !errors.As(err, &errNotExists) {
+			t.Errorf("Expected NotExistsError, got: %v", err)
+		}
+		err = RunDd(filepath.Join(sampleDir, "nonexistent"), dest.Name())
+		if !errors.As(err, &errNotExists) {
+			t.Errorf("Expected NotExistsError, got: %v", err)
+		}
+	})
+	t.Run("RunDd executes correctly", func(t *testing.T) {
 		err := RunDd(sample.Name(), dest.Name())
 		if err != nil {
 			t.Errorf("RunDd failed: %v", err)
@@ -79,6 +104,26 @@ func TestRunDd(t *testing.T) {
 			t.Errorf("Checksum mismatch: expected %x, got %x", sampleSum, checksum)
 		}
 	})
+	t.Run("ValidateBlockDeviceContent executes correctly", func(t *testing.T) {
+		err := ValidateDiskImage(sample.Name(), dest.Name())
+		if err != nil {
+			t.Errorf("Validation failed: %v", err)
+		}
+	})
+	t.Run("ValidateBlockDeviceContent fails if data corrupted", func(t *testing.T) {
+		// Simulate data corruption by truncating the destination file
+		err := os.Truncate(dest.Name(), 127*1024*1024) // Truncate to 127MB
+		if err != nil {
+			t.Errorf("Failed to truncate dest file: %v", err)
+		}
+		// ValidateBlockDeviceContent should fail
+		err = ValidateDiskImage(sample.Name(), dest.Name())
+		if err == nil {
+			t.Errorf("Validation should have failed due to data corruption")
+		} else if !errors.Is(err, ErrDeviceValidationFailed) {
+			t.Errorf("Unexpected validation error: %v", err)
+		}
+	})
 }
 
 func TestFlashAndValidation(t *testing.T) {
@@ -86,7 +131,7 @@ func TestFlashAndValidation(t *testing.T) {
 	sample, sampleSum := GenerateTempFile(t, "sample", true)
 	sampleDir := t.TempDir()
 	dest, _ := GenerateTempFile(t, "dest", false)
-	t.Run("FlashFileToBlockDevice fails when either file is folder", func(t *testing.T) {
+	t.Run("WriteDiskImage fails when either file is folder", func(t *testing.T) {
 		var errIsDir *IsDirectoryError
 		err := WriteDiskImage(sampleDir, dest.Name())
 		if !errors.As(err, &errIsDir) {
@@ -97,7 +142,7 @@ func TestFlashAndValidation(t *testing.T) {
 			t.Errorf("Expected IsDirectoryError, got: %v", err)
 		}
 	})
-	t.Run("FlashFileToBlockDevice fails when either file does not exist", func(t *testing.T) {
+	t.Run("WriteDiskImage fails when either file does not exist", func(t *testing.T) {
 		var errNotExists *NotExistsError
 		err := WriteDiskImage(sample.Name(), filepath.Join(sampleDir, "nonexistent"))
 		if !errors.As(err, &errNotExists) {
@@ -108,10 +153,10 @@ func TestFlashAndValidation(t *testing.T) {
 			t.Errorf("Expected NotExistsError, got: %v", err)
 		}
 	})
-	t.Run("FlashFileToBlockDevice executes correctly", func(t *testing.T) {
+	t.Run("WriteDiskImage executes correctly", func(t *testing.T) {
 		err := WriteDiskImage(sample.Name(), dest.Name())
 		if err != nil {
-			t.Errorf("FlashFileToBlockDevice failed: %v", err)
+			t.Errorf("WriteDiskImage failed: %v", err)
 		} else if checksum, err := ChecksumFile(t, dest.Name()); err != nil {
 			t.Errorf("Failed to generate checksum for dest: %v", err)
 		} else if !bytes.Equal(sampleSum, checksum) {
