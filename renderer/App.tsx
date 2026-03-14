@@ -10,16 +10,18 @@ const App = (): React.JSX.Element => {
   const [file, setFile] = useState('')
   const [device, setDevice] = useState<string | null>(null)
   const [devices, setDevices] = useState<string[]>([])
-  globalThis.setFileReact = setFile
-  globalThis.setDevicesReact = setDevices
   const [dialog, setDialog] = useState('')
-  globalThis.setDialogReact = setDialog
   const [progress, setProgress] = useState<Progress | string | null>(null)
-  globalThis.setProgressReact = setProgress
   useEffect(() => {
+    globalThis.setFileReact = setFile
+    globalThis.setDevicesReact = devices => {
+      setDevices(devices)
+      setDevice(null)
+    }
+    globalThis.setDialogReact = setDialog
+    globalThis.setProgressReact = setProgress
     globalThis.refreshDevices()
   }, [])
-  useEffect(() => setDevice(null), [devices])
 
   return (
     <div className={styles.root}>
