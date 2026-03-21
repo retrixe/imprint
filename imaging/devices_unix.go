@@ -29,44 +29,49 @@ func GetDevices(platform Platform) ([]Device, error) {
 	if err != nil {
 		return nil, err
 	}
+	deviceStrings := strings.Split(string(res), "\n")
+	deviceStrings = deviceStrings[:len(deviceStrings)-1]
 
-	// FIXME: This would be better as an /etc/fstab check, to be honest... This is unreliable.
-	bootDevices, err := platform.ExecCommandOutput(platform.ExecCommand("df", "/", "/home"))
+	// FIXME: Iterate through /etc/fstab for all system mounts (skip noauto,nofail)
+	res, err = platform.ExecCommandOutput(platform.ExecCommand("df", "/", "/home"))
 	if err != nil {
 		return nil, err
 	}
 
-	splitBoot := strings.Split(string(bootDevices), "\n")
-	rootPart := splitBoot[1]
-	homePart := splitBoot[2]
+	systemDevices := strings.Split(strings.TrimSpace(string(res)), "\n")
+	for idx, device := range systemDevices {
+		systemDevices[idx] = strings.Fields(device)[0]
+		// FIXME: Get the parent device of each of those devices (PKNAME in lsblk)
+	}
 
-	files := strings.Split(string(res), "\n")
-	files = files[:len(files)-1]
+	devices := []Device{}
 
-	disks := []Device{}
-
-	for _, file := range files {
-		disk := strings.Fields(file)
-		if disk[1] == "disk" && disk[2] == "1" &&
-			// !strings.HasPrefix(disk[0], "zram") && -- zram isn't removable anyway
-			!strings.HasPrefix(rootPart, "/dev/"+disk[0]) &&
-			!strings.HasPrefix(homePart, "/dev/"+disk[0]) {
-			bytes, _ := strconv.Atoi(disk[3])
+nextDevice:
+	for _, deviceString := range deviceStrings {
+		deviceFields := strings.Fields(deviceString)
+		if deviceFields[1] == "disk" && deviceFields[2] == "1" {
+			// Exclude any "system" devices (as defined by /etc/fstab) from being enumerated
+			for _, systemDevice := range systemDevices {
+				if strings.HasPrefix(systemDevice, "/dev/"+deviceFields[0]) {
+					continue nextDevice
+				}
+			}
+			bytes, _ := strconv.Atoi(deviceFields[3])
 			device := Device{
-				Name:  "/dev/" + disk[0],
+				Name:  "/dev/" + deviceFields[0],
 				Size:  BytesToString(bytes, false),
 				Bytes: bytes,
 			}
 
-			if len(disk) >= 4 {
-				device.Model = strings.TrimSpace(strings.Join(disk[4:], " "))
+			if len(deviceFields) >= 4 {
+				device.Model = strings.TrimSpace(strings.Join(deviceFields[4:], " "))
 			}
 
-			disks = append(disks, device)
+			devices = append(devices, device)
 		}
 	}
 
-	return disks, nil
+	return devices, nil
 }
 
 // UnmountDevice unmounts a block device's partitons before flashing to it.
