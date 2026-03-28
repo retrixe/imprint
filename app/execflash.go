@@ -122,10 +122,9 @@ func CopyConvert(iff string, of string) (chan DdProgress, io.WriteCloser, error)
 	return channel, stdin, nil
 }
 
-// dropCROrLF drops a terminal \r or \n from the data.
-func dropCROrLF(data []byte) []byte {
-	// FIXME: Write unit tests
-	if len(data) > 0 && (data[len(data)-1] == '\r' || data[len(data)-1] == '\n') {
+// dropCR drops a terminal \r from the data.
+func dropCR(data []byte) []byte {
+	if len(data) > 0 && data[len(data)-1] == '\r' {
 		return data[0 : len(data)-1]
 	}
 	return data
@@ -137,22 +136,24 @@ func dropCROrLF(data []byte) []byte {
 // newline. In regular expression notation, it is `\r|\n`. The last
 // non-empty line of input will be returned even if it has no newline.
 //
-// Modified from [bufio.ScanLines] to support \r as a line terminator on its own.
+// Modified from [bufio.ScanLines] to support \r as a line terminator on its own,
+// in addition to \n and \r\n.
 func ScanCROrLFLines(data []byte, atEOF bool) (advance int, token []byte, err error) {
-	// FIXME: Write unit tests
 	if atEOF && len(data) == 0 {
 		return 0, nil, nil
 	}
-	if i := bytes.IndexByte(data, '\n'); i >= 0 {
+	i := bytes.IndexByte(data, '\r')
+	j := bytes.IndexByte(data, '\n')
+	if j >= 0 && (i < 0 || j < i || j == i+1) { // No \r, or \n comes before \r, or \r\n sequence.
 		// We have a full newline-terminated line.
-		return i + 1, dropCROrLF(data[0:i]), nil
-	} else if i := bytes.IndexByte(data, '\r'); i >= 0 {
+		return j + 1, dropCR(data[0:j]), nil
+	} else if i >= 0 {
 		// We have a full carriage return-terminated line.
-		return i + 1, dropCROrLF(data[0:i]), nil
+		return i + 1, data[0:i], nil
 	}
 	// If we're at EOF, we have a final, non-terminated line. Return it.
 	if atEOF {
-		return len(data), dropCROrLF(data), nil
+		return len(data), data, nil
 	}
 	// Request more data.
 	return 0, nil, nil
