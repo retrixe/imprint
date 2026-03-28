@@ -133,7 +133,7 @@ func dropCR(data []byte) []byte {
 // ScanCROrLFLines is a split function for a Scanner that returns each line of
 // text, stripped of any trailing end-of-line marker. The returned line may
 // be empty. The end-of-line marker is one carriage return or one mandatory
-// newline. In regular expression notation, it is `\r|\n`. The last
+// newline. In regular expression notation, it is `\r?\n|\r`. The last
 // non-empty line of input will be returned even if it has no newline.
 //
 // Modified from [bufio.ScanLines] to support \r as a line terminator on its own,
