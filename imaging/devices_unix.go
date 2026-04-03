@@ -5,9 +5,9 @@ package imaging
 import (
 	"io/fs"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
+	"syscall"
 )
 
 // Device is a struct representing a block device.
@@ -92,9 +92,8 @@ func UnmountDevice(device string) error {
 	// Unmount device partitions.
 	for _, mount := range strings.Split(string(mounts), "\n") {
 		if strings.HasPrefix(mount, device) {
-			partition := strings.Fields(mount)[0]
-			// TODO: Use syscall.Unmount instead?
-			err = exec.Command("umount", partition).Run()
+			mountpoint := strings.Fields(mount)[0]
+			err = syscall.Unmount(mountpoint, 0)
 			if err != nil {
 				return err
 			}
