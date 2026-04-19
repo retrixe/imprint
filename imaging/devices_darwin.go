@@ -2,8 +2,6 @@ package imaging
 
 import (
 	"io/fs"
-	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 )
@@ -18,7 +16,6 @@ type Device struct {
 
 // GetDevices returns the list of USB devices available to read/write from.
 func GetDevices(platform Platform) ([]Device, error) {
-	// FIXME: Write unit tests
 	res, err := platform.ExecCommandOutput(platform.ExecCommand("diskutil", "info", "-all"))
 	if err != nil {
 		return nil, err
@@ -61,19 +58,24 @@ func GetDevices(platform Platform) ([]Device, error) {
 	return disks, nil
 }
 
-// UnmountDevice unmounts a block device's partitons before flashing to it.
+// UnmountDevice unmounts a block device's partitions before flashing to it.
 func UnmountDevice(device string) error {
-	// FIXME: Write unit tests
+	return UnmountDeviceWithPlatform(SystemPlatform, device)
+}
+
+// UnmountDevice unmounts a block device's partitions before flashing to it.
+// It accepts a [UnixPlatform] to allow for testing with a mock platform.
+func UnmountDeviceWithPlatform(platform Platform, device string) error {
 	// Check if device exists.
-	stat, err := os.Stat(device)
+	stat, err := platform.OsStat(device)
 	if err != nil {
 		return err
 	} else if stat.Mode().Type()&fs.ModeDevice == 0 {
 		return ErrNotBlockDevice
 	}
 	// Unmount all partitions of disk using `diskutil`.
-	// TODO: is there a syscall here?
-	_, err = exec.Command("diskutil", "unmountDisk", device).Output()
+	// We could go through the mounts manually and call umount, but this seems more reliable.
+	_, err = platform.ExecCommandOutput(platform.ExecCommand("diskutil", "unmountDisk", device))
 	if err != nil {
 		return err
 	}
