@@ -4,10 +4,8 @@ package imaging
 
 import (
 	"io/fs"
-	"os"
 	"strconv"
 	"strings"
-	"syscall"
 )
 
 // Device is a struct representing a block device.
@@ -74,27 +72,33 @@ nextDevice:
 	return devices, nil
 }
 
-// UnmountDevice unmounts a block device's partitons before flashing to it.
+// UnmountDevice unmounts a block device's partitions before flashing to it.
 func UnmountDevice(device string) error {
-	// FIXME: Write unit tests
-	// Check if device is mounted.
-	stat, err := os.Stat(device)
+	return UnmountDeviceWithPlatform(UnixSystemPlatform, device)
+}
+
+// UnmountDevice unmounts a block device's partitions before flashing to it.
+// It accepts a [UnixPlatform] to allow for testing with a mock platform.
+func UnmountDeviceWithPlatform(platform UnixPlatform, device string) error {
+	// Check if device exists and is a block device.
+	stat, err := platform.OsStat(device)
 	if err != nil {
 		return err
 	} else if stat.Mode().Type()&fs.ModeDevice == 0 {
 		return ErrNotBlockDevice
 	}
+
 	// Discover mounted device partitions.
-	mounts, err := os.ReadFile("/proc/mounts")
+	mounts, err := platform.OsReadFile("/proc/mounts")
 	if err != nil {
 		return err
 	}
+
 	// Unmount device partitions.
 	for _, mount := range strings.Split(string(mounts), "\n") {
 		if strings.HasPrefix(mount, device) {
 			mountpoint := strings.Fields(mount)[0]
-			err = syscall.Unmount(mountpoint, 0)
-			if err != nil {
+			if err := platform.SyscallUnmount(mountpoint, 0); err != nil {
 				return err
 			}
 		}

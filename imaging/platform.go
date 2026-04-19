@@ -9,6 +9,8 @@ import (
 type Platform interface {
 	OsOpen(name string) (*os.File, error)
 	OsGeteuid() int
+	OsReadFile(name string) ([]byte, error)
+	OsStat(name string) (os.FileInfo, error)
 	RuntimeGOOS() string
 	ExecCommand(name string, arg ...string) *exec.Cmd
 	ExecCommandOutput(cmd *exec.Cmd) ([]byte, error)
@@ -25,6 +27,14 @@ func (p systemPlatform) OsOpen(name string) (*os.File, error) {
 
 func (p systemPlatform) OsGeteuid() int {
 	return os.Geteuid()
+}
+
+func (p systemPlatform) OsReadFile(name string) ([]byte, error) {
+	return os.ReadFile(name)
+}
+
+func (p systemPlatform) OsStat(name string) (os.FileInfo, error) {
+	return os.Stat(name)
 }
 
 func (p systemPlatform) RuntimeGOOS() string {
