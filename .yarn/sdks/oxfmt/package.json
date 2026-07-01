@@ -1,0 +1,9 @@
+{
+  "name": "oxfmt",
+  "version": "0.40.0-sdk",
+  "main": "dist/index.js",
+  "type": "commonjs",
+  "bin": {
+    "oxfmt": "bin/oxfmt"
+  }
+}

@@ -1,3 +1,7 @@
 {
-  "recommendations": ["arcanis.vscode-zipfs", "dbaeumer.vscode-eslint", "oxc.oxc-vscode"]
+  "recommendations": [
+    "arcanis.vscode-zipfs",
+    "dbaeumer.vscode-eslint",
+    "oxc.oxc-vscode"
+  ]
 }

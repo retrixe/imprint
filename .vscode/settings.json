@@ -7,8 +7,7 @@
   "typescript.tsdk": ".yarn/sdks/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "editor.defaultFormatter": "oxc.oxc-vscode",
-  // Massive hack to fix Yarn PnP issues but it works, see https://github.com/oxc-project/oxc-vscode/issues/11
-  "oxc.path.oxfmt": ".vscode/oxfmt-wrapper.cmd",
+  "oxc.path.oxfmt": ".yarn/sdks/oxfmt/bin/oxfmt",
   "[go]": {
     "editor.defaultFormatter": "golang.go"
   }
