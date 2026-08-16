@@ -95,9 +95,18 @@ func UnmountDeviceWithPlatform(platform UnixPlatform, device string) error {
 	}
 
 	// Unmount device partitions.
+	mountpointUnescaper := strings.NewReplacer(
+		// man getmntent(3) says that mountpoints are escaped in /proc/mounts,
+		// so we need to unescape them before passing them to umount.
+		`\040`, " ",
+		`\011`, "\t",
+		`\012`, "\n",
+		`\134`, "\\",
+	)
 	for _, mount := range strings.Split(string(mounts), "\n") {
 		if strings.HasPrefix(mount, device) {
-			mountpoint := strings.Fields(mount)[0]
+			mountpoint := strings.Fields(mount)[1]
+			mountpoint = mountpointUnescaper.Replace(mountpoint)
 			if err := platform.SyscallUnmount(mountpoint, 0); err != nil {
 				return err
 			}
