@@ -23,7 +23,7 @@ import (
 
 // TODO: Future support for flashing to an internal drive?
 
-const version = "1.0.0-alpha.2"
+const version = "1.0.0-alpha.3"
 
 var w webview.WebView
 var overrideUrl = ""

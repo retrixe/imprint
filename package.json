@@ -1,6 +1,6 @@
 {
   "name": "imprint",
-  "version": "1.0.0-alpha.2",
+  "version": "1.0.0-alpha.3",
   "private": true,
   "description": "An small, intuitive app to flash ISOs and disk images to external drives e.g. USB drives.",
   "license": "Apache-2.0",
