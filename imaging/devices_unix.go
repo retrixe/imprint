@@ -28,7 +28,7 @@ func GetDevices(platform Platform) ([]Device, error) {
 	// -b = --bytes
 	// -o = --output
 	res, err := platform.ExecCommandOutput(platform.ExecCommand(
-		"lsblk", "--pairs", "-d", "-b", "-o", "KNAME,TYPE,RM,SIZE,MODEL"))
+		"lsblk", "--pairs", "-d", "-b", "-o", "KNAME,TYPE,RM,SIZE,TRAN,MODEL"))
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,11 @@ nextDevice:
 			}
 		}
 
-		if deviceInfo["TYPE"] == "disk" && deviceInfo["RM"] == "1" {
+		// https://lxr.kde.org/source/frameworks/solid/src/solid/devices/backends/udisks2/udisksstoragedrive.cpp
+		// Display removable, USB and IEEE1394 devices
+		// TODO: Exclude UDISKS_SYSTEM=1 if set on udev
+		if deviceInfo["TYPE"] == "disk" &&
+			(deviceInfo["RM"] == "1" || deviceInfo["TRAN"] == "usb" || deviceInfo["TRAN"] == "sbp") {
 			// Exclude any "system" devices (as defined by /etc/fstab) from being enumerated
 			for _, systemDevice := range systemDevices {
 				if strings.HasPrefix(systemDevice, "/dev/"+deviceInfo["KNAME"]) {
