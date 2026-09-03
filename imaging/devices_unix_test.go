@@ -47,12 +47,11 @@ func (p mockDevicesPlatform) ExecCommandOutput(cmd *exec.Cmd) ([]byte, error) {
 	return p.allowedCmds[cmd.Path].output, nil
 }
 
+var lsblkExitError = errors.New("lsblk mock error")
+var dfExitError = errors.New("df mock error")
+
 func TestGetDevices(t *testing.T) {
 	t.Parallel()
-
-	var lsblkExitError = errors.New("lsblk mock error")
-
-	var dfExitError = errors.New("df mock error")
 
 	testCases := []struct {
 		name            string
@@ -70,7 +69,7 @@ func TestGetDevices(t *testing.T) {
 			"fails upon lsblk error",
 			map[string]mockDevicesPlatformCommand{
 				"lsblk": {
-					args: []string{"-d", "-b", "-o", "KNAME,TYPE,RM,SIZE,MODEL"},
+					args: []string{"--pairs", "-d", "-b", "-o", "KNAME,TYPE,RM,SIZE,MODEL"},
 					err:  lsblkExitError,
 				},
 			},
@@ -81,8 +80,8 @@ func TestGetDevices(t *testing.T) {
 			"fails upon missing df",
 			map[string]mockDevicesPlatformCommand{
 				"lsblk": {
-					args:   []string{"-d", "-b", "-o", "KNAME,TYPE,RM,SIZE,MODEL"},
-					output: []byte("KNAME   TYPE RM          SIZE MODEL\nzram0   disk  0    8589934592 \n"),
+					args:   []string{"--pairs", "-d", "-b", "-o", "KNAME,TYPE,RM,SIZE,MODEL"},
+					output: []byte(`KNAME="zram0" TYPE="disk" RM="0" SIZE="8589934592" MODEL=""` + "\n"),
 				},
 			},
 			[]imaging.Device{},
@@ -92,8 +91,8 @@ func TestGetDevices(t *testing.T) {
 			"fails upon df error",
 			map[string]mockDevicesPlatformCommand{
 				"lsblk": {
-					args:   []string{"-d", "-b", "-o", "KNAME,TYPE,RM,SIZE,MODEL"},
-					output: []byte("KNAME   TYPE RM          SIZE MODEL\nzram0   disk  0    8589934592 \n"),
+					args:   []string{"--pairs", "-d", "-b", "-o", "KNAME,TYPE,RM,SIZE,MODEL"},
+					output: []byte(`KNAME="zram0" TYPE="disk" RM="0" SIZE="8589934592" MODEL=""` + "\n"),
 				},
 				"df": {
 					args: []string{"/", "/home"},
@@ -107,10 +106,9 @@ func TestGetDevices(t *testing.T) {
 			"works on Fedora 42 on ASUS Zenbook S 14 w/ dual boot, btrfs, LUKS with 0 devices attached",
 			map[string]mockDevicesPlatformCommand{
 				"lsblk": {
-					args: []string{"-d", "-b", "-o", "KNAME,TYPE,RM,SIZE,MODEL"},
-					output: []byte("KNAME   TYPE RM          SIZE MODEL\n" +
-						"zram0   disk  0    8589934592 \n" +
-						"nvme0n1 disk  0 1024209543168 WD PC SN560 SDDPNQE-1T00-1102\n"),
+					args: []string{"--pairs", "-d", "-b", "-o", "KNAME,TYPE,RM,SIZE,MODEL"},
+					output: []byte(`KNAME="zram0" TYPE="disk" RM="0" SIZE="8589934592" MODEL=""` + "\n" +
+						`KNAME="nvme0n1" TYPE="disk" RM="0" SIZE="1024209543168" MODEL="WD PC SN560 SDDPNQE-1T00-1102"` + "\n"),
 				},
 				"df": {
 					args: []string{"/", "/home"},
@@ -126,11 +124,10 @@ func TestGetDevices(t *testing.T) {
 			"works on Fedora 42 on ASUS Zenbook S 14 w/ dual boot, btrfs, LUKS with 1 device attached",
 			map[string]mockDevicesPlatformCommand{
 				"lsblk": {
-					args: []string{"-d", "-b", "-o", "KNAME,TYPE,RM,SIZE,MODEL"},
-					output: []byte("KNAME   TYPE RM          SIZE MODEL\n" +
-						"sda     disk  1    2000748032 Cruzer\n" +
-						"zram0   disk  0    8589934592 \n" +
-						"nvme0n1 disk  0 1024209543168 WD PC SN560 SDDPNQE-1T00-1102\n"),
+					args: []string{"--pairs", "-d", "-b", "-o", "KNAME,TYPE,RM,SIZE,MODEL"},
+					output: []byte(`KNAME="sda" TYPE="disk" RM="1" SIZE="2000748032" MODEL="Cruzer"` + "\n" +
+						`KNAME="zram0" TYPE="disk" RM="0" SIZE="8589934592" MODEL=""` + "\n" +
+						`KNAME="nvme0n1" TYPE="disk" RM="0" SIZE="1024209543168" MODEL="WD PC SN560 SDDPNQE-1T00-1102"` + "\n"),
 				},
 				"df": {
 					args: []string{"/", "/home"},
@@ -148,12 +145,11 @@ func TestGetDevices(t *testing.T) {
 			"works on Fedora 42 on ASUS Zenbook S 14 w/ dual boot, btrfs, LUKS with 2 devices attached",
 			map[string]mockDevicesPlatformCommand{
 				"lsblk": {
-					args: []string{"-d", "-b", "-o", "KNAME,TYPE,RM,SIZE,MODEL"},
-					output: []byte("KNAME   TYPE RM          SIZE MODEL\n" +
-						"sda     disk  1    2000748032 Cruzer\n" +
-						"sdb     disk  1   61530439680 SanDisk 3.2Gen1\n" +
-						"zram0   disk  0    8589934592 \n" +
-						"nvme0n1 disk  0 1024209543168 WD PC SN560 SDDPNQE-1T00-1102\n"),
+					args: []string{"--pairs", "-d", "-b", "-o", "KNAME,TYPE,RM,SIZE,MODEL"},
+					output: []byte(`KNAME="sda" TYPE="disk" RM="1" SIZE="2000748032" MODEL="Cruzer"` + "\n" +
+						`KNAME="sdb" TYPE="disk" RM="1" SIZE="61530439680" MODEL="SanDisk 3.2Gen1"` + "\n" +
+						`KNAME="zram0" TYPE="disk" RM="0" SIZE="8589934592" MODEL=""` + "\n" +
+						`KNAME="nvme0n1" TYPE="disk" RM="0" SIZE="1024209543168" MODEL="WD PC SN560 SDDPNQE-1T00-1102"` + "\n"),
 				},
 				"df": {
 					args: []string{"/", "/home"},
@@ -174,7 +170,6 @@ func TestGetDevices(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 			devices, err := imaging.GetDevices(mockDevicesPlatform{
-				Platform:    imaging.SystemPlatform,
 				T:           t,
 				allowedCmds: testCase.cmds,
 			})

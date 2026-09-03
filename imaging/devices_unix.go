@@ -4,6 +4,7 @@ package imaging
 
 import (
 	"io/fs"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -16,19 +17,22 @@ type Device struct {
 	Bytes int
 }
 
+// Cheers to https://stackoverflow.com/a/6525975
+var kvRegex = regexp.MustCompile(`([a-zA-Z0-9_-]+)=("[^"\\]*(?:\\.[^"\\]*)*")`)
+
 // GetDevices returns the list of USB devices available to read/write from.
 func GetDevices(platform Platform) ([]Device, error) {
+	// --pairs
 	// TODO: -J = --json (available since Ubuntu 16.04)
 	// -d = --nodeps
 	// -b = --bytes
 	// -o = --output
 	res, err := platform.ExecCommandOutput(platform.ExecCommand(
-		"lsblk", "-d", "-b", "-o", "KNAME,TYPE,RM,SIZE,MODEL"))
+		"lsblk", "--pairs", "-d", "-b", "-o", "KNAME,TYPE,RM,SIZE,MODEL"))
 	if err != nil {
 		return nil, err
 	}
-	deviceStrings := strings.Split(string(res), "\n")
-	deviceStrings = deviceStrings[:len(deviceStrings)-1]
+	deviceStrings := strings.Split(strings.TrimSpace(string(res)), "\n")
 
 	// FIXME: Iterate through /etc/fstab for all system mounts (skip noauto,nofail)
 	res, err = platform.ExecCommandOutput(platform.ExecCommand("df", "/", "/home"))
@@ -46,23 +50,29 @@ func GetDevices(platform Platform) ([]Device, error) {
 
 nextDevice:
 	for _, deviceString := range deviceStrings {
-		deviceFields := strings.Fields(deviceString)
-		if deviceFields[1] == "disk" && deviceFields[2] == "1" {
+		kv := kvRegex.FindAllStringSubmatch(deviceString, -1)
+		deviceInfo := make(map[string]string)
+		for _, match := range kv {
+			key, value := match[1], match[2]
+			deviceInfo[key], err = strconv.Unquote(value)
+			if err != nil {
+				deviceInfo[key] = strings.Trim(value, `"`) // Ideally, we should not hit this, but fallback
+			}
+		}
+
+		if deviceInfo["TYPE"] == "disk" && deviceInfo["RM"] == "1" {
 			// Exclude any "system" devices (as defined by /etc/fstab) from being enumerated
 			for _, systemDevice := range systemDevices {
-				if strings.HasPrefix(systemDevice, "/dev/"+deviceFields[0]) {
+				if strings.HasPrefix(systemDevice, "/dev/"+deviceInfo["KNAME"]) {
 					continue nextDevice
 				}
 			}
-			bytes, _ := strconv.Atoi(deviceFields[3])
+			bytes, _ := strconv.Atoi(deviceInfo["SIZE"])
 			device := Device{
-				Name:  "/dev/" + deviceFields[0],
+				Model: deviceInfo["MODEL"],
+				Name:  "/dev/" + deviceInfo["KNAME"],
 				Size:  BytesToString(bytes, false),
 				Bytes: bytes,
-			}
-
-			if len(deviceFields) >= 4 {
-				device.Model = strings.TrimSpace(strings.Join(deviceFields[4:], " "))
 			}
 
 			devices = append(devices, device)
