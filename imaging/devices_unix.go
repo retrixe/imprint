@@ -10,14 +10,6 @@ import (
 	"strings"
 )
 
-// Device is a struct representing a block device.
-type Device struct {
-	Name  string
-	Model string
-	Size  string
-	Bytes int
-}
-
 // Cheers to https://stackoverflow.com/a/6525975
 var kvRegex = regexp.MustCompile(`([a-zA-Z0-9_-]+)=("[^"\\]*(?:\\.[^"\\]*)*")`)
 

@@ -6,14 +6,6 @@ import (
 	"strings"
 )
 
-// Device is a struct representing a block device.
-type Device struct {
-	Name  string
-	Model string
-	Size  string
-	Bytes int
-}
-
 // GetDevices returns the list of USB devices available to read/write from.
 func GetDevices(platform Platform) ([]Device, error) {
 	res, err := platform.ExecCommandOutput(platform.ExecCommand("diskutil", "info", "-all"))

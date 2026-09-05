@@ -7,14 +7,6 @@ import (
 	"strings"
 )
 
-// Device is a struct representing a block device.
-type Device struct {
-	Name  string
-	Model string
-	Size  string
-	Bytes int
-}
-
 const wmicArgs = "diskdrive get deviceid, mediatype, model, caption, size"
 
 // GetDevices returns the list of USB devices available to read/write from.
