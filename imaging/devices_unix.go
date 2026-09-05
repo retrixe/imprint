@@ -20,6 +20,38 @@ type Device struct {
 // Cheers to https://stackoverflow.com/a/6525975
 var kvRegex = regexp.MustCompile(`([a-zA-Z0-9_-]+)=("[^"\\]*(?:\\.[^"\\]*)*")`)
 
+// man getmntent(3) says that mountpoints are escaped in /proc/mounts,
+// so we need to unescape them before passing them to umount.
+var mountpointUnescaper = strings.NewReplacer(
+	`\040`, " ",
+	`\011`, "\t",
+	`\012`, "\n",
+	`\134`, "\\",
+)
+
+type mount struct{ device, mountpoint string }
+
+func readMounts(platform Platform) ([]mount, error) {
+	// Discover mounted device partitions.
+	mounts, err := platform.OsReadFile("/proc/mounts")
+	if err != nil {
+		return nil, err
+	}
+
+	mountedDevices := make([]mount, 0)
+	for _, mountLine := range strings.Split(string(mounts), "\n") {
+		fields := strings.Fields(mountLine)
+		if len(fields) < 2 {
+			continue
+		}
+		device := fields[0]
+		mountpoint := mountpointUnescaper.Replace(fields[1])
+		mountedDevices = append(mountedDevices, mount{device, mountpoint})
+	}
+
+	return mountedDevices, nil
+}
+
 // GetDevices returns the list of USB devices available to read/write from.
 func GetDevices(platform Platform) ([]Device, error) {
 	// --pairs
@@ -103,24 +135,15 @@ func UnmountDeviceWithPlatform(platform UnixPlatform, device string) error {
 	}
 
 	// Discover mounted device partitions.
-	mounts, err := platform.OsReadFile("/proc/mounts")
+	mounts, err := readMounts(platform)
 	if err != nil {
 		return err
 	}
 
 	// Unmount device partitions.
-	mountpointUnescaper := strings.NewReplacer(
-		// man getmntent(3) says that mountpoints are escaped in /proc/mounts,
-		// so we need to unescape them before passing them to umount.
-		`\040`, " ",
-		`\011`, "\t",
-		`\012`, "\n",
-		`\134`, "\\",
-	)
-	for _, mount := range strings.Split(string(mounts), "\n") {
-		if strings.HasPrefix(mount, device) {
-			mountpoint := strings.Fields(mount)[1]
-			mountpoint = mountpointUnescaper.Replace(mountpoint)
+	for _, mount := range mounts {
+		mountpoint, mountedDevice := mount.mountpoint, mount.device
+		if strings.HasPrefix(mountedDevice, device) {
 			if err := platform.SyscallUnmount(mountpoint, 0); err != nil {
 				return err
 			}
