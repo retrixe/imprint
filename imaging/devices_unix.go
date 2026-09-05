@@ -5,6 +5,7 @@ package imaging
 import (
 	"io/fs"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -29,6 +30,8 @@ var mountpointUnescaper = strings.NewReplacer(
 	`\134`, "\\",
 )
 
+var systemMounts = []string{"/", "/usr", "/home", "/boot", "/boot/efi", "/var", "/efi"}
+
 type mount struct{ device, mountpoint string }
 
 func readMounts(platform Platform) ([]mount, error) {
@@ -52,6 +55,18 @@ func readMounts(platform Platform) ([]mount, error) {
 	return mountedDevices, nil
 }
 
+func parseLsblkFields(line string) map[string]string {
+	row := make(map[string]string)
+	for _, match := range kvRegex.FindAllStringSubmatch(line, -1) {
+		value, err := strconv.Unquote(match[2])
+		if err != nil {
+			value = strings.Trim(match[2], `"`)
+		}
+		row[match[1]] = value
+	}
+	return row
+}
+
 // GetDevices returns the list of USB devices available to read/write from.
 func GetDevices(platform Platform) ([]Device, error) {
 	// --pairs
@@ -64,57 +79,47 @@ func GetDevices(platform Platform) ([]Device, error) {
 	if err != nil {
 		return nil, err
 	}
-	deviceStrings := strings.Split(strings.TrimSpace(string(res)), "\n")
 
-	// FIXME: Iterate through /etc/fstab for all system mounts (skip noauto,nofail)
-	res, err = platform.ExecCommandOutput(platform.ExecCommand("df", "/", "/home"))
+	// Identify all system mounts and exclude devices mounted on system critical mountpoints
+	mounts, err := readMounts(platform)
 	if err != nil {
 		return nil, err
 	}
-
-	systemDevices := strings.Split(strings.TrimSpace(string(res)), "\n")
-	for idx, device := range systemDevices {
-		systemDevices[idx] = strings.Fields(device)[0]
-		// FIXME: Get the parent device of each of those devices (PKNAME in lsblk)
+	systemDevices := make([]string, 0)
+	for _, mount := range mounts {
+		if slices.Contains(systemMounts, mount.mountpoint) {
+			// FIXME: Get the parent device of each of those devices (PKNAME in lsblk)
+			systemDevices = append(systemDevices, mount.device)
+		}
 	}
 
 	devices := []Device{}
-
 nextDevice:
-	for _, deviceString := range deviceStrings {
-		kv := kvRegex.FindAllStringSubmatch(deviceString, -1)
-		deviceInfo := make(map[string]string)
-		for _, match := range kv {
-			key, value := match[1], match[2]
-			deviceInfo[key], err = strconv.Unquote(value)
-			if err != nil {
-				deviceInfo[key] = strings.Trim(value, `"`) // Ideally, we should not hit this, but fallback
-			}
-		}
+	for _, deviceString := range strings.Split(strings.TrimSpace(string(res)), "\n") {
+		deviceInfo := parseLsblkFields(deviceString)
 
+		// Display only removable, USB and IEEE1394 disks
 		// https://lxr.kde.org/source/frameworks/solid/src/solid/devices/backends/udisks2/udisksstoragedrive.cpp
-		// Display removable, USB and IEEE1394 devices
 		// TODO: Exclude UDISKS_SYSTEM=1 if set on udev
-		if deviceInfo["TYPE"] == "disk" &&
-			(deviceInfo["RM"] == "1" || deviceInfo["TRAN"] == "usb" || deviceInfo["TRAN"] == "sbp") {
-			// Exclude any "system" devices (as defined by /etc/fstab) from being enumerated
-			for _, systemDevice := range systemDevices {
-				if strings.HasPrefix(systemDevice, "/dev/"+deviceInfo["KNAME"]) {
-					continue nextDevice
-				}
-			}
-			bytes, _ := strconv.Atoi(deviceInfo["SIZE"])
-			device := Device{
-				Model: deviceInfo["MODEL"],
-				Name:  "/dev/" + deviceInfo["KNAME"],
-				Size:  BytesToString(bytes, false),
-				Bytes: bytes,
-			}
-
-			devices = append(devices, device)
+		if deviceInfo["TYPE"] != "disk" ||
+			(deviceInfo["RM"] != "1" && deviceInfo["TRAN"] != "usb" && deviceInfo["TRAN"] != "sbp") {
+			continue
 		}
-	}
+		// Exclude any "system" devices from being enumerated
+		for _, systemDevice := range systemDevices {
+			if strings.HasPrefix(systemDevice, "/dev/"+deviceInfo["KNAME"]) {
+				continue nextDevice
+			}
+		}
 
+		bytes, _ := strconv.Atoi(deviceInfo["SIZE"])
+		devices = append(devices, Device{
+			Model: deviceInfo["MODEL"],
+			Name:  "/dev/" + deviceInfo["KNAME"],
+			Size:  BytesToString(bytes, false),
+			Bytes: bytes,
+		})
+	}
 	return devices, nil
 }
 
