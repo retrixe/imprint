@@ -76,6 +76,13 @@ func TestGetDevices(t *testing.T) {
 			"/dev/mapper/luks-283e2319-0541-4588-93ef-a2687dd09fc7 / btrfs rw,relatime 0 0\n" +
 			"/dev/mapper/luks-283e2319-0541-4588-93ef-a2687dd09fc7 /home btrfs rw,relatime 0 0\n"),
 	}
+	lsblkToDisk := mockDevicesPlatformCommand{
+		args: []string{"--pairs", "-s", "-o", "KNAME,TYPE", "/dev/mapper/luks-283e2319-0541-4588-93ef-a2687dd09fc7"},
+		output: []byte("" +
+			`KNAME="dm-0" TYPE="crypt"` + "\n" +
+			`KNAME="nvme0n1p3" TYPE="part"` + "\n" +
+			`KNAME="nvme0n1" TYPE="disk"` + "\n"),
+	}
 
 	testCases := []struct {
 		name            string
@@ -121,6 +128,7 @@ func TestGetDevices(t *testing.T) {
 				"lsblk": {
 					{args: lsblkListArgs, output: []byte(`KNAME="zram0" TYPE="disk" RM="0" SIZE="8589934592" TRAN="" MODEL=""` + "\n" +
 						`KNAME="nvme0n1" TYPE="disk" RM="0" SIZE="1024209543168" TRAN="nvme" MODEL="WD PC SN560 SDDPNQE-1T00-1102"` + "\n")},
+					lsblkToDisk,
 				},
 			},
 			procMounts,
@@ -134,6 +142,7 @@ func TestGetDevices(t *testing.T) {
 					{args: lsblkListArgs, output: []byte(`KNAME="sda" TYPE="disk" RM="1" SIZE="2000748032" TRAN="usb" MODEL="Cruzer"` + "\n" +
 						`KNAME="zram0" TYPE="disk" RM="0" SIZE="8589934592" TRAN="" MODEL=""` + "\n" +
 						`KNAME="nvme0n1" TYPE="disk" RM="0" SIZE="1024209543168" TRAN="nvme" MODEL="WD PC SN560 SDDPNQE-1T00-1102"` + "\n")},
+					lsblkToDisk,
 				},
 			},
 			procMounts,
@@ -150,12 +159,83 @@ func TestGetDevices(t *testing.T) {
 						`KNAME="sdb" TYPE="disk" RM="1" SIZE="61530439680" TRAN="usb" MODEL="SanDisk 3.2Gen1"` + "\n" +
 						`KNAME="zram0" TYPE="disk" RM="0" SIZE="8589934592" TRAN="" MODEL=""` + "\n" +
 						`KNAME="nvme0n1" TYPE="disk" RM="0" SIZE="1024209543168" TRAN="nvme" MODEL="WD PC SN560 SDDPNQE-1T00-1102"` + "\n")},
+					lsblkToDisk,
 				},
 			},
 			procMounts,
 			[]imaging.Device{
 				{Name: "/dev/sda", Model: "Cruzer", Size: imaging.BytesToString(2000748032, false), Bytes: 2000748032},
 				{Name: "/dev/sdb", Model: "SanDisk 3.2Gen1", Size: imaging.BytesToString(61530439680, false), Bytes: 61530439680},
+			},
+			nil,
+		},
+		{
+			"works with the OS installed on a USB disk, which is excluded",
+			map[string][]mockDevicesPlatformCommand{
+				"lsblk": {
+					{args: lsblkListArgs, output: []byte(`KNAME="sda" TYPE="disk" RM="1" SIZE="61530439680" TRAN="usb" MODEL="SanDisk 3.2Gen1"` + "\n" +
+						`KNAME="nvme0n1" TYPE="disk" RM="0" SIZE="1024209543168" TRAN="nvme" MODEL="WD PC SN560 SDDPNQE-1T00-1102"` + "\n")},
+					{args: []string{"--pairs", "-s", "-o", "KNAME,TYPE", "/dev/sda2"}, output: []byte("" +
+						`KNAME="sda2" TYPE="part"` + "\n" +
+						`KNAME="sda" TYPE="disk"` + "\n")},
+				},
+			},
+			map[string][]byte{"/proc/mounts": []byte("/dev/sda2 / ext4 rw,relatime 0 0\n")},
+			[]imaging.Device{},
+			nil,
+		},
+		{
+			"works on a Fedora live USB, whose boot medium is excluded",
+			map[string][]mockDevicesPlatformCommand{
+				"lsblk": {
+					{args: lsblkListArgs, output: []byte(`KNAME="sda" TYPE="disk" RM="1" SIZE="2000748032" TRAN="usb" MODEL="Cruzer"` + "\n" +
+						`KNAME="sdb" TYPE="disk" RM="1" SIZE="61530439680" TRAN="usb" MODEL="SanDisk 3.2Gen1"` + "\n")},
+					{args: []string{"--pairs", "-s", "-o", "KNAME,TYPE", "/dev/mapper/live-rw"}, output: []byte("" +
+						`KNAME="dm-0" TYPE="dm"` + "\n" +
+						`KNAME="loop0" TYPE="loop"` + "\n")},
+					{args: []string{"--pairs", "-s", "-o", "KNAME,TYPE", "/dev/sdb1"}, output: []byte("" +
+						`KNAME="sdb1" TYPE="part"` + "\n" +
+						`KNAME="sdb" TYPE="disk"` + "\n")},
+				},
+			},
+			map[string][]byte{"/proc/mounts": []byte("" +
+				"/dev/mapper/live-rw / ext4 rw,relatime 0 0\n" +
+				"/dev/sdb1 /run/initramfs/live iso9660 ro,relatime 0 0\n")},
+			[]imaging.Device{
+				{Name: "/dev/sda", Model: "Cruzer", Size: imaging.BytesToString(2000748032, false), Bytes: 2000748032},
+			},
+			nil,
+		},
+		{
+			"works on an Ubuntu live USB, whose /cdrom medium is excluded",
+			map[string][]mockDevicesPlatformCommand{
+				"lsblk": {
+					{args: lsblkListArgs, output: []byte(`KNAME="sda" TYPE="disk" RM="1" SIZE="2000748032" TRAN="usb" MODEL="Cruzer"` + "\n" +
+						`KNAME="sdb" TYPE="disk" RM="1" SIZE="61530439680" TRAN="usb" MODEL="SanDisk 3.2Gen1"` + "\n")},
+					{args: []string{"--pairs", "-s", "-o", "KNAME,TYPE", "/dev/sdb1"}, output: []byte("" +
+						`KNAME="sdb1" TYPE="part"` + "\n" +
+						`KNAME="sdb" TYPE="disk"` + "\n")},
+				},
+			},
+			map[string][]byte{"/proc/mounts": []byte("" +
+				"/cow / overlay rw,relatime 0 0\n" +
+				"/dev/sdb1 /cdrom iso9660 ro,relatime 0 0\n")},
+			[]imaging.Device{
+				{Name: "/dev/sda", Model: "Cruzer", Size: imaging.BytesToString(2000748032, false), Bytes: 2000748032},
+			},
+			nil,
+		},
+		{
+			"works when / is /dev/root, which lsblk cannot resolve",
+			map[string][]mockDevicesPlatformCommand{
+				"lsblk": {
+					{args: lsblkListArgs, output: []byte(`KNAME="sda" TYPE="disk" RM="1" SIZE="2000748032" TRAN="usb" MODEL="Cruzer"` + "\n")},
+					{args: []string{"--pairs", "-s", "-o", "KNAME,TYPE", "/dev/root"}, err: lsblkExitError},
+				},
+			},
+			map[string][]byte{"/proc/mounts": []byte("/dev/root / ext4 rw,relatime 0 0\n")},
+			[]imaging.Device{
+				{Name: "/dev/sda", Model: "Cruzer", Size: imaging.BytesToString(2000748032, false), Bytes: 2000748032},
 			},
 			nil,
 		},

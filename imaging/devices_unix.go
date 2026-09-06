@@ -22,7 +22,11 @@ var mountpointUnescaper = strings.NewReplacer(
 	`\134`, "\\",
 )
 
-var systemMounts = []string{"/", "/usr", "/home", "/boot", "/boot/efi", "/var", "/efi"}
+var systemMountpoints = []string{
+	"/", "/usr", "/home", "/boot", "/boot/efi", "/var", "/efi",
+	// Live media handling for Fedora, Debian, Ubuntu casper
+	"/run/initramfs/live", "/run/live/medium", "/lib/live/mount/medium", "/cdrom",
+}
 
 type mount struct{ device, mountpoint string }
 
@@ -59,6 +63,42 @@ func parseLsblkFields(line string) map[string]string {
 	return row
 }
 
+// findSystemDevices returns the KNAMEs of disks mounted at critical system mountpoints.
+func findSystemDevices(platform Platform, mounts []mount) []string {
+	// Find devices mounted on system critical mountpoints
+	var systemMounts []string
+	for _, m := range mounts {
+		if slices.Contains(systemMountpoints, m.mountpoint) && !slices.Contains(systemMounts, m.device) {
+			systemMounts = append(systemMounts, m.device)
+		}
+	}
+
+	var systemDevices []string
+	// Go through all systemMounts to find their parent disk
+	for _, source := range systemMounts {
+		// Exclude non-disk sources like overlay, tmpfs or a zfs dataset.
+		if !strings.HasPrefix(source, "/dev/") {
+			continue
+		}
+
+		// -s = --inverse (list the device's parents instead of its children)
+		res, err := platform.ExecCommandOutput(platform.ExecCommand(
+			"lsblk", "--pairs", "-s", "-o", "KNAME,TYPE", source))
+		if err != nil {
+			continue // Allow listing to continue even if this source is not real (e.g. /dev/root)
+		}
+
+		// Find the disks in the listing (usually the last entry) and insert it into systemDevices
+		for _, line := range strings.Split(strings.TrimSpace(string(res)), "\n") {
+			fields := parseLsblkFields(line)
+			if fields["TYPE"] == "disk" && !slices.Contains(systemDevices, fields["KNAME"]) {
+				systemDevices = append(systemDevices, fields["KNAME"])
+			}
+		}
+	}
+	return systemDevices
+}
+
 // GetDevices returns the list of USB devices available to read/write from.
 func GetDevices(platform Platform) ([]Device, error) {
 	// --pairs
@@ -77,16 +117,9 @@ func GetDevices(platform Platform) ([]Device, error) {
 	if err != nil {
 		return nil, err
 	}
-	systemDevices := make([]string, 0)
-	for _, mount := range mounts {
-		if slices.Contains(systemMounts, mount.mountpoint) {
-			// FIXME: Get the parent device of each of those devices (PKNAME in lsblk)
-			systemDevices = append(systemDevices, mount.device)
-		}
-	}
+	systemDevices := findSystemDevices(platform, mounts)
 
 	devices := []Device{}
-nextDevice:
 	for _, deviceString := range strings.Split(strings.TrimSpace(string(res)), "\n") {
 		deviceInfo := parseLsblkFields(deviceString)
 
@@ -98,10 +131,8 @@ nextDevice:
 			continue
 		}
 		// Exclude any "system" devices from being enumerated
-		for _, systemDevice := range systemDevices {
-			if strings.HasPrefix(systemDevice, "/dev/"+deviceInfo["KNAME"]) {
-				continue nextDevice
-			}
+		if slices.Contains(systemDevices, deviceInfo["KNAME"]) {
+			continue
 		}
 
 		bytes, _ := strconv.Atoi(deviceInfo["SIZE"])
