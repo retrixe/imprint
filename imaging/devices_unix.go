@@ -13,12 +13,13 @@ import (
 // Cheers to https://stackoverflow.com/a/6525975
 var kvRegex = regexp.MustCompile(`([a-zA-Z0-9_-]+)=("[^"\\]*(?:\\.[^"\\]*)*")`)
 
-// man getmntent(3) says that mountpoints are escaped in /proc/mounts,
+// man getmntent(3) says that mountpoints and sources are escaped in /proc/mounts,
 // so we need to unescape them before passing them to umount.
-var mountpointUnescaper = strings.NewReplacer(
+var mountUnescaper = strings.NewReplacer(
 	`\040`, " ",
 	`\011`, "\t",
 	`\012`, "\n",
+	`\043`, "#",
 	`\134`, "\\",
 )
 
@@ -43,8 +44,8 @@ func readMounts(platform Platform) ([]mount, error) {
 		if len(fields) < 2 {
 			continue
 		}
-		device := fields[0]
-		mountpoint := mountpointUnescaper.Replace(fields[1])
+		device := mountUnescaper.Replace(fields[0])
+		mountpoint := mountUnescaper.Replace(fields[1])
 		mountedDevices = append(mountedDevices, mount{device, mountpoint})
 	}
 
@@ -63,19 +64,31 @@ func parseLsblkFields(line string) map[string]string {
 	return row
 }
 
-// findSystemDevices returns the KNAMEs of disks mounted at critical system mountpoints.
-func findSystemDevices(platform Platform, mounts []mount) []string {
+// findSystemDisks returns the KNAMEs of disks mounted at critical system mountpoints.
+func findSystemDisks(platform Platform, mounts []mount) []string {
+	// TODO: Use a single lsblk listing and use PKNAME to walk up the mounted device tree.
+	// Notes: Some things which may not work (as reviewed by Claude Fable 5.1)
+	//   - Swap partitions, which never appear in /proc/mounts.
+	//   - Multi-device btrfs (only the member named in /proc/mounts is resolved) and
+	//     bcachefs (its colon-joined source is rejected by lsblk).
+	//   - Loop-backed live media whose medium is mounted somewhere not listed in
+	//     systemMountpoints, or unmounted after the ISO is attached to a loop device.
+	//   - Sources that are not block devices: ZFS datasets, overlayfs roots, and
+	//     systemd autofs placeholders for an automounted /boot or /efi.
+	//   - /dev/root on initramfs-less boots, and any other source lsblk cannot resolve.
+	//     These are skipped rather than excluded, so the listing fails open.
+
 	// Find devices mounted on system critical mountpoints
-	var systemMounts []string
+	var systemDevices []string
 	for _, m := range mounts {
-		if slices.Contains(systemMountpoints, m.mountpoint) && !slices.Contains(systemMounts, m.device) {
-			systemMounts = append(systemMounts, m.device)
+		if slices.Contains(systemMountpoints, m.mountpoint) && !slices.Contains(systemDevices, m.device) {
+			systemDevices = append(systemDevices, m.device)
 		}
 	}
 
-	var systemDevices []string
-	// Go through all systemMounts to find their parent disk
-	for _, source := range systemMounts {
+	var systemDisks []string
+	// Go through all systemDevices to find their parent disk
+	for _, source := range systemDevices {
 		// Exclude non-disk sources like overlay, tmpfs or a zfs dataset.
 		if !strings.HasPrefix(source, "/dev/") {
 			continue
@@ -88,15 +101,15 @@ func findSystemDevices(platform Platform, mounts []mount) []string {
 			continue // Allow listing to continue even if this source is not real (e.g. /dev/root)
 		}
 
-		// Find the disks in the listing (usually the last entry) and insert it into systemDevices
+		// Find the disks in the listing and insert them into systemDisks
 		for _, line := range strings.Split(strings.TrimSpace(string(res)), "\n") {
 			fields := parseLsblkFields(line)
-			if fields["TYPE"] == "disk" && !slices.Contains(systemDevices, fields["KNAME"]) {
-				systemDevices = append(systemDevices, fields["KNAME"])
+			if fields["TYPE"] == "disk" && !slices.Contains(systemDisks, fields["KNAME"]) {
+				systemDisks = append(systemDisks, fields["KNAME"])
 			}
 		}
 	}
-	return systemDevices
+	return systemDisks
 }
 
 // GetDevices returns the list of USB devices available to read/write from.
@@ -117,7 +130,7 @@ func GetDevices(platform Platform) ([]Device, error) {
 	if err != nil {
 		return nil, err
 	}
-	systemDevices := findSystemDevices(platform, mounts)
+	systemDisks := findSystemDisks(platform, mounts)
 
 	devices := []Device{}
 	for _, deviceString := range strings.Split(strings.TrimSpace(string(res)), "\n") {
@@ -130,8 +143,8 @@ func GetDevices(platform Platform) ([]Device, error) {
 			(deviceInfo["RM"] != "1" && deviceInfo["TRAN"] != "usb" && deviceInfo["TRAN"] != "sbp") {
 			continue
 		}
-		// Exclude any "system" devices from being enumerated
-		if slices.Contains(systemDevices, deviceInfo["KNAME"]) {
+		// Exclude any "system" disks from being enumerated
+		if slices.Contains(systemDisks, deviceInfo["KNAME"]) {
 			continue
 		}
 
@@ -170,7 +183,7 @@ func UnmountDevice(device string) error {
 	return UnmountDeviceWithPlatform(UnixSystemPlatform, device)
 }
 
-// UnmountDevice unmounts a block device's partitions before flashing to it.
+// UnmountDeviceWithPlatform unmounts a block device's partitions before flashing to it.
 // It accepts a [UnixPlatform] to allow for testing with a mock platform.
 func UnmountDeviceWithPlatform(platform UnixPlatform, device string) error {
 	// Check if device exists and is a block device.
@@ -196,5 +209,7 @@ func UnmountDeviceWithPlatform(platform UnixPlatform, device string) error {
 			}
 		}
 	}
+
+	// TODO: Use lsblk to check if any children are still mounted, and return an error if so.
 	return nil
 }
