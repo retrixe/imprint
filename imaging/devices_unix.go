@@ -146,6 +146,25 @@ func GetDevices(platform Platform) ([]Device, error) {
 	return devices, nil
 }
 
+// isPartitionOf reports whether partition is disk itself or one of its partitions,
+// e.g. /dev/sda1 for /dev/sda, or /dev/nvme0n1p1 for /dev/nvme0n1. A plain prefix
+// check would also match unrelated disks such as /dev/sdab1 for /dev/sda.
+func isPartitionOf(partition, disk string) bool {
+	suffix, ok := strings.CutPrefix(partition, disk)
+	if !ok || disk == "" {
+		return false
+	} else if suffix == "" {
+		return true
+	}
+	// Device names ending in a digit put a "p" before the partition number.
+	if last := disk[len(disk)-1]; '0' <= last && last <= '9' {
+		if suffix, ok = strings.CutPrefix(suffix, "p"); !ok {
+			return false // Not a partition under disk
+		}
+	}
+	return suffix != "" && strings.Trim(suffix, "0123456789") == ""
+}
+
 // UnmountDevice unmounts a block device's partitions before flashing to it.
 func UnmountDevice(device string) error {
 	return UnmountDeviceWithPlatform(UnixSystemPlatform, device)
@@ -171,7 +190,7 @@ func UnmountDeviceWithPlatform(platform UnixPlatform, device string) error {
 	// Unmount device partitions.
 	for _, mount := range mounts {
 		mountpoint, mountedDevice := mount.mountpoint, mount.device
-		if strings.HasPrefix(mountedDevice, device) {
+		if isPartitionOf(mountedDevice, device) {
 			if err := platform.SyscallUnmount(mountpoint, 0); err != nil {
 				return err
 			}
