@@ -25,8 +25,11 @@ var mountUnescaper = strings.NewReplacer(
 
 var systemMountpoints = []string{
 	"/", "/usr", "/home", "/boot", "/boot/efi", "/var", "/efi",
-	// Live media handling for Fedora, Debian, Ubuntu casper
+	// Live media: Fedora/dracut, Debian, Ubuntu casper, Arch, Manjaro, NixOS
 	"/run/initramfs/live", "/run/live/medium", "/lib/live/mount/medium", "/cdrom",
+	"/run/archiso/bootmnt", "/run/miso/bootmnt", "/iso",
+	// Common ISO file boot mounts (partitions holding the ISO file, not the ISO itself)
+	"/run/initramfs/isoscan", "/run/live/findiso", "/isodevice",
 }
 
 type mount struct{ device, mountpoint string }
