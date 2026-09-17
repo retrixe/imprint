@@ -28,21 +28,18 @@ type mockDevicesPlatformCommand struct {
 
 func (p mockDevicesPlatform) ExecCommand(name string, arg ...string) *exec.Cmd {
 	cmd := &exec.Cmd{Path: name, Args: arg}
-	for allowedCmdName, allowedCmds := range p.allowedCmds {
-		if name != allowedCmdName {
-			continue
-		}
-		for _, allowedCmd := range allowedCmds {
-			if slices.Equal(arg, allowedCmd.args) {
-				cmd.Err = allowedCmd.err
-				return cmd
-			}
-		}
-		p.T.Errorf("ExecCommand called with unexpected args for %s: %v", name, arg)
-		cmd.Err = fmt.Errorf("ExecCommand called with unexpected args for %s: %v", name, arg)
+	allowedCmds, ok := p.allowedCmds[name]
+	if !ok {
+		cmd.Err = exec.ErrNotFound
 		return cmd
 	}
-	cmd.Err = exec.ErrNotFound
+	for _, allowedCmd := range allowedCmds {
+		if slices.Equal(arg, allowedCmd.args) {
+			return cmd
+		}
+	}
+	p.T.Errorf("ExecCommand called with unexpected args for %s: %v", name, arg)
+	cmd.Err = fmt.Errorf("ExecCommand called with unexpected args for %s: %v", name, arg)
 	return cmd
 }
 
@@ -52,7 +49,7 @@ func (p mockDevicesPlatform) ExecCommandOutput(cmd *exec.Cmd) ([]byte, error) {
 	}
 	for _, allowedCmd := range p.allowedCmds[cmd.Path] {
 		if slices.Equal(cmd.Args, allowedCmd.args) {
-			return allowedCmd.output, nil
+			return allowedCmd.output, allowedCmd.err
 		}
 	}
 	return nil, exec.ErrNotFound
@@ -67,21 +64,31 @@ func (p mockDevicesPlatform) OsReadFile(name string) ([]byte, error) {
 
 var lsblkExitError = errors.New("lsblk mock error")
 
+func lsblkParentsArgs(source string) []string {
+	return []string{"--pairs", "-s", "-o", "KNAME,TYPE", source}
+}
+
 func TestGetDevices(t *testing.T) {
 	t.Parallel()
 
 	lsblkListArgs := []string{"--pairs", "-d", "-b", "-o", "KNAME,TYPE,RM,SIZE,TRAN,MODEL"}
-	procMounts := map[string][]byte{
+	f42ZenbookS14ProcMounts := map[string][]byte{
 		"/proc/mounts": []byte("" +
 			"/dev/mapper/luks-283e2319-0541-4588-93ef-a2687dd09fc7 / btrfs rw,relatime 0 0\n" +
 			"/dev/mapper/luks-283e2319-0541-4588-93ef-a2687dd09fc7 /home btrfs rw,relatime 0 0\n"),
 	}
-	lsblkToDisk := mockDevicesPlatformCommand{
-		args: []string{"--pairs", "-s", "-o", "KNAME,TYPE", "/dev/mapper/luks-283e2319-0541-4588-93ef-a2687dd09fc7"},
+	f42ZenbookS14LsblkToDisk := mockDevicesPlatformCommand{
+		args: lsblkParentsArgs("/dev/mapper/luks-283e2319-0541-4588-93ef-a2687dd09fc7"),
 		output: []byte("" +
 			`KNAME="dm-0" TYPE="crypt"` + "\n" +
 			`KNAME="nvme0n1p3" TYPE="part"` + "\n" +
 			`KNAME="nvme0n1" TYPE="disk"` + "\n"),
+	}
+	f42ZenbookS14LsblkSdb1ToDisk := mockDevicesPlatformCommand{
+		args: lsblkParentsArgs("/dev/sdb1"),
+		output: []byte("" +
+			`KNAME="sdb1" TYPE="part"` + "\n" +
+			`KNAME="sdb" TYPE="disk"` + "\n"),
 	}
 
 	testCases := []struct {
@@ -94,7 +101,7 @@ func TestGetDevices(t *testing.T) {
 		{
 			"fails upon missing lsblk",
 			map[string][]mockDevicesPlatformCommand{},
-			procMounts,
+			nil,
 			[]imaging.Device{},
 			exec.ErrNotFound,
 		},
@@ -106,7 +113,7 @@ func TestGetDevices(t *testing.T) {
 					err:  lsblkExitError,
 				}},
 			},
-			procMounts,
+			nil,
 			[]imaging.Device{},
 			lsblkExitError,
 		},
@@ -128,10 +135,10 @@ func TestGetDevices(t *testing.T) {
 				"lsblk": {
 					{args: lsblkListArgs, output: []byte(`KNAME="zram0" TYPE="disk" RM="0" SIZE="8589934592" TRAN="" MODEL=""` + "\n" +
 						`KNAME="nvme0n1" TYPE="disk" RM="0" SIZE="1024209543168" TRAN="nvme" MODEL="WD PC SN560 SDDPNQE-1T00-1102"` + "\n")},
-					lsblkToDisk,
+					f42ZenbookS14LsblkToDisk,
 				},
 			},
-			procMounts,
+			f42ZenbookS14ProcMounts,
 			[]imaging.Device{},
 			nil,
 		},
@@ -142,10 +149,10 @@ func TestGetDevices(t *testing.T) {
 					{args: lsblkListArgs, output: []byte(`KNAME="sda" TYPE="disk" RM="1" SIZE="2000748032" TRAN="usb" MODEL="Cruzer"` + "\n" +
 						`KNAME="zram0" TYPE="disk" RM="0" SIZE="8589934592" TRAN="" MODEL=""` + "\n" +
 						`KNAME="nvme0n1" TYPE="disk" RM="0" SIZE="1024209543168" TRAN="nvme" MODEL="WD PC SN560 SDDPNQE-1T00-1102"` + "\n")},
-					lsblkToDisk,
+					f42ZenbookS14LsblkToDisk,
 				},
 			},
-			procMounts,
+			f42ZenbookS14ProcMounts,
 			[]imaging.Device{
 				{Name: "/dev/sda", Model: "Cruzer", Size: imaging.BytesToString(2000748032, false), Bytes: 2000748032},
 			},
@@ -159,10 +166,10 @@ func TestGetDevices(t *testing.T) {
 						`KNAME="sdb" TYPE="disk" RM="1" SIZE="61530439680" TRAN="usb" MODEL="SanDisk 3.2Gen1"` + "\n" +
 						`KNAME="zram0" TYPE="disk" RM="0" SIZE="8589934592" TRAN="" MODEL=""` + "\n" +
 						`KNAME="nvme0n1" TYPE="disk" RM="0" SIZE="1024209543168" TRAN="nvme" MODEL="WD PC SN560 SDDPNQE-1T00-1102"` + "\n")},
-					lsblkToDisk,
+					f42ZenbookS14LsblkToDisk,
 				},
 			},
-			procMounts,
+			f42ZenbookS14ProcMounts,
 			[]imaging.Device{
 				{Name: "/dev/sda", Model: "Cruzer", Size: imaging.BytesToString(2000748032, false), Bytes: 2000748032},
 				{Name: "/dev/sdb", Model: "SanDisk 3.2Gen1", Size: imaging.BytesToString(61530439680, false), Bytes: 61530439680},
@@ -175,7 +182,7 @@ func TestGetDevices(t *testing.T) {
 				"lsblk": {
 					{args: lsblkListArgs, output: []byte(`KNAME="sda" TYPE="disk" RM="1" SIZE="61530439680" TRAN="usb" MODEL="SanDisk 3.2Gen1"` + "\n" +
 						`KNAME="nvme0n1" TYPE="disk" RM="0" SIZE="1024209543168" TRAN="nvme" MODEL="WD PC SN560 SDDPNQE-1T00-1102"` + "\n")},
-					{args: []string{"--pairs", "-s", "-o", "KNAME,TYPE", "/dev/sda2"}, output: []byte("" +
+					{args: lsblkParentsArgs("/dev/sda2"), output: []byte("" +
 						`KNAME="sda2" TYPE="part"` + "\n" +
 						`KNAME="sda" TYPE="disk"` + "\n")},
 				},
@@ -190,12 +197,10 @@ func TestGetDevices(t *testing.T) {
 				"lsblk": {
 					{args: lsblkListArgs, output: []byte(`KNAME="sda" TYPE="disk" RM="1" SIZE="2000748032" TRAN="usb" MODEL="Cruzer"` + "\n" +
 						`KNAME="sdb" TYPE="disk" RM="1" SIZE="61530439680" TRAN="usb" MODEL="SanDisk 3.2Gen1"` + "\n")},
-					{args: []string{"--pairs", "-s", "-o", "KNAME,TYPE", "/dev/mapper/live-rw"}, output: []byte("" +
+					{args: lsblkParentsArgs("/dev/mapper/live-rw"), output: []byte("" +
 						`KNAME="dm-0" TYPE="dm"` + "\n" +
 						`KNAME="loop0" TYPE="loop"` + "\n")},
-					{args: []string{"--pairs", "-s", "-o", "KNAME,TYPE", "/dev/sdb1"}, output: []byte("" +
-						`KNAME="sdb1" TYPE="part"` + "\n" +
-						`KNAME="sdb" TYPE="disk"` + "\n")},
+					f42ZenbookS14LsblkSdb1ToDisk,
 				},
 			},
 			map[string][]byte{"/proc/mounts": []byte("" +
@@ -212,9 +217,7 @@ func TestGetDevices(t *testing.T) {
 				"lsblk": {
 					{args: lsblkListArgs, output: []byte(`KNAME="sda" TYPE="disk" RM="1" SIZE="2000748032" TRAN="usb" MODEL="Cruzer"` + "\n" +
 						`KNAME="sdb" TYPE="disk" RM="1" SIZE="61530439680" TRAN="usb" MODEL="SanDisk 3.2Gen1"` + "\n")},
-					{args: []string{"--pairs", "-s", "-o", "KNAME,TYPE", "/dev/sdb1"}, output: []byte("" +
-						`KNAME="sdb1" TYPE="part"` + "\n" +
-						`KNAME="sdb" TYPE="disk"` + "\n")},
+					f42ZenbookS14LsblkSdb1ToDisk,
 				},
 			},
 			map[string][]byte{"/proc/mounts": []byte("" +
@@ -230,12 +233,72 @@ func TestGetDevices(t *testing.T) {
 			map[string][]mockDevicesPlatformCommand{
 				"lsblk": {
 					{args: lsblkListArgs, output: []byte(`KNAME="sda" TYPE="disk" RM="1" SIZE="2000748032" TRAN="usb" MODEL="Cruzer"` + "\n")},
-					{args: []string{"--pairs", "-s", "-o", "KNAME,TYPE", "/dev/root"}, err: lsblkExitError},
+					{args: lsblkParentsArgs("/dev/root"), err: lsblkExitError},
 				},
 			},
 			map[string][]byte{"/proc/mounts": []byte("/dev/root / ext4 rw,relatime 0 0\n")},
 			[]imaging.Device{
 				{Name: "/dev/sda", Model: "Cruzer", Size: imaging.BytesToString(2000748032, false), Bytes: 2000748032},
+			},
+			nil,
+		},
+		{
+			"continues past a source lsblk cannot resolve and still excludes the next one",
+			map[string][]mockDevicesPlatformCommand{
+				"lsblk": {
+					{args: lsblkListArgs, output: []byte(`KNAME="sda" TYPE="disk" RM="1" SIZE="2000748032" TRAN="usb" MODEL="Cruzer"` + "\n" +
+						`KNAME="sdb" TYPE="disk" RM="1" SIZE="61530439680" TRAN="usb" MODEL="SanDisk 3.2Gen1"` + "\n")},
+					{args: lsblkParentsArgs("/dev/root"), err: lsblkExitError},
+					f42ZenbookS14LsblkSdb1ToDisk,
+				},
+			},
+			map[string][]byte{"/proc/mounts": []byte("" +
+				"/dev/root / ext4 rw,relatime 0 0\n" +
+				"/dev/sdb1 /boot/efi vfat rw,relatime 0 0\n")},
+			[]imaging.Device{
+				{Name: "/dev/sda", Model: "Cruzer", Size: imaging.BytesToString(2000748032, false), Bytes: 2000748032},
+			},
+			nil,
+		},
+		{
+			"works with the OS split across two USB disks, which are both excluded",
+			map[string][]mockDevicesPlatformCommand{
+				"lsblk": {
+					{args: lsblkListArgs, output: []byte(`KNAME="sda" TYPE="disk" RM="1" SIZE="2000748032" TRAN="usb" MODEL="Cruzer"` + "\n" +
+						`KNAME="sdb" TYPE="disk" RM="1" SIZE="61530439680" TRAN="usb" MODEL="SanDisk 3.2Gen1"` + "\n" +
+						`KNAME="sdc" TYPE="disk" RM="1" SIZE="31029460992" TRAN="usb" MODEL="DataTraveler"` + "\n")},
+					{args: lsblkParentsArgs("/dev/sda2"), output: []byte("" +
+						`KNAME="sda2" TYPE="part"` + "\n" +
+						`KNAME="sda" TYPE="disk"` + "\n")},
+					f42ZenbookS14LsblkSdb1ToDisk,
+				},
+			},
+			map[string][]byte{"/proc/mounts": []byte("" +
+				"/dev/sda2 / ext4 rw,relatime 0 0\n" +
+				"/dev/sdb1 /boot/efi vfat rw,relatime 0 0\n")},
+			[]imaging.Device{
+				{Name: "/dev/sdc", Model: "DataTraveler", Size: imaging.BytesToString(31029460992, false), Bytes: 31029460992},
+			},
+			nil,
+		},
+		{
+			"works with an LVM root spanning two USB disks, which are both excluded",
+			map[string][]mockDevicesPlatformCommand{
+				"lsblk": {
+					{args: lsblkListArgs, output: []byte(`KNAME="sda" TYPE="disk" RM="1" SIZE="2000748032" TRAN="usb" MODEL="Cruzer"` + "\n" +
+						`KNAME="sdb" TYPE="disk" RM="1" SIZE="61530439680" TRAN="usb" MODEL="SanDisk 3.2Gen1"` + "\n" +
+						`KNAME="sdc" TYPE="disk" RM="1" SIZE="31029460992" TRAN="usb" MODEL="DataTraveler"` + "\n")},
+					{args: lsblkParentsArgs("/dev/mapper/vg-root"), output: []byte("" +
+						`KNAME="dm-0" TYPE="lvm"` + "\n" +
+						`KNAME="sda1" TYPE="part"` + "\n" +
+						`KNAME="sda" TYPE="disk"` + "\n" +
+						`KNAME="sdb1" TYPE="part"` + "\n" +
+						`KNAME="sdb" TYPE="disk"` + "\n")},
+				},
+			},
+			map[string][]byte{"/proc/mounts": []byte("/dev/mapper/vg-root / ext4 rw,relatime 0 0\n")},
+			[]imaging.Device{
+				{Name: "/dev/sdc", Model: "DataTraveler", Size: imaging.BytesToString(31029460992, false), Bytes: 31029460992},
 			},
 			nil,
 		},
