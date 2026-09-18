@@ -114,6 +114,7 @@ func WriteDiskImage(iff string, of string) error {
 	startTime := time.Now().UnixMilli()
 	var total int
 	buf := make([]byte, bs)
+	syncInterval := 4
 	for {
 		n1, errRead := src.Read(buf)
 		if errRead != nil && errRead != io.EOF {
@@ -128,6 +129,15 @@ func WriteDiskImage(iff string, of string) error {
 		total += n1
 		if errRead == io.EOF {
 			break
+		}
+		// Run regular syncs to disk
+		syncInterval--
+		if syncInterval == 0 {
+			err := dest.Sync()
+			if err != nil {
+				return fmt.Errorf("failed to sync writes to disk! %w", err)
+			}
+			syncInterval = 4
 		}
 		select {
 		case <-ticker.C:
