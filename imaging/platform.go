@@ -9,6 +9,7 @@ import (
 type Platform interface {
 	OsOpen(name string) (*os.File, error)
 	OsGeteuid() int
+	OsOpenFile(name string, flag int, perm os.FileMode) (*os.File, error)
 	OsReadFile(name string) ([]byte, error)
 	OsStat(name string) (os.FileInfo, error)
 	RuntimeGOOS() string
@@ -27,6 +28,10 @@ func (p systemPlatform) OsOpen(name string) (*os.File, error) {
 
 func (p systemPlatform) OsGeteuid() int {
 	return os.Geteuid()
+}
+
+func (p systemPlatform) OsOpenFile(name string, flag int, perm os.FileMode) (*os.File, error) {
+	return os.OpenFile(name, flag, perm)
 }
 
 func (p systemPlatform) OsReadFile(name string) ([]byte, error) {

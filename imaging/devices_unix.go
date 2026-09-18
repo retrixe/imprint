@@ -3,11 +3,14 @@
 package imaging
 
 import (
+	"errors"
 	"io/fs"
+	"os"
 	"regexp"
 	"slices"
 	"strconv"
 	"strings"
+	"syscall"
 )
 
 // Cheers to https://stackoverflow.com/a/6525975
@@ -213,6 +216,14 @@ func UnmountDeviceWithPlatform(platform UnixPlatform, device string) error {
 		}
 	}
 
-	// TODO: Use lsblk to check if any children are still mounted, and return an error if so.
-	return nil
+	// Verify no children are mounted, or anything else like LUKS, mdraid, swap, etc.
+	// This should work better than using lsblk as a check. https://lwn.net/Articles/736534/
+	f, err := platform.OsOpenFile(device, os.O_RDONLY|syscall.O_EXCL, 0)
+	if err != nil {
+		if errors.Is(err, syscall.EBUSY) {
+			return ErrDeviceInUse
+		}
+		return err
+	}
+	return f.Close()
 }
