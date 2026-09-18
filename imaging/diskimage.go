@@ -64,11 +64,11 @@ func FormatProgress(total int, delta int64, action string, floatPrec bool) strin
 // RunDd is a wrapper around the `dd` command. This wrapper behaves
 // identically to dd, but accepts stdin input "stop\n".
 func RunDd(iff string, of string) error {
-	conv := "conv=sync"
+	args := []string{"if=" + iff, "of=" + of, "status=progress", "bs=1M"}
 	if runtime.GOOS == "linux" {
-		conv = "conv=fdatasync"
+		args = append(args, "conv=fdatasync")
 	}
-	cmd := exec.Command("dd", "if="+iff, "of="+of, "status=progress", "bs=1M", conv)
+	cmd := exec.Command("dd", args...)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return err
@@ -88,8 +88,17 @@ func RunDd(iff string, of string) error {
 	quit <- true
 	if err != nil && cmd.ProcessState.ExitCode() != 0 {
 		os.Exit(cmd.ProcessState.ExitCode())
+	} else if err != nil {
+		return fmt.Errorf("dd command failed! %w", err)
 	}
-	return err
+	if runtime.GOOS != "windows" && runtime.GOOS != "linux" {
+		// A syscall would be better, but I don't want to wrap syscall.Sync in go:build for an unused fn
+		err := exec.Command("sync").Run()
+		if err != nil {
+			return fmt.Errorf("failed to sync writes to disk! %w", err)
+		}
+	}
+	return nil
 }
 
 // WriteDiskImage is a re-implementation of dd to work cross-platform on Windows as well.
