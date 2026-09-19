@@ -38,7 +38,7 @@ func GetDevices(platform Platform) ([]Device, error) {
 			continue
 		}
 		splitDiskSize := strings.Split(disk["Disk Size"], " ")
-		bytes, _ := strconv.Atoi(splitDiskSize[2][1:])
+		bytes, _ := strconv.ParseInt(splitDiskSize[2][1:], 10, 64)
 		device := Device{
 			Name:  disk["Device Node"],
 			Size:  splitDiskSize[0] + " " + splitDiskSize[1],

@@ -158,7 +158,7 @@ func main() {
 		}
 		jsonifiedDevices := make([]string, len(devices))
 		for index, device := range devices {
-			base := strconv.Itoa(device.Bytes) + " " + device.Name
+			base := strconv.FormatInt(device.Bytes, 10) + " " + device.Name
 			if device.Model == "" {
 				jsonifiedDevices[index] = ParseToJsString(base + " (" + device.Size + ")")
 			} else {
@@ -195,7 +195,7 @@ func main() {
 	var inputPipe io.WriteCloser
 	var cancelled bool = false
 	var mutex sync.Mutex
-	w.Bind("flash", func(file string, device string, deviceSize int) {
+	w.Bind("flash", func(file string, device string, deviceSize int64) {
 		cancelled = false
 		stat, err := os.Stat(file)
 		if err != nil {
@@ -204,11 +204,11 @@ func main() {
 		} else if !stat.Mode().IsRegular() {
 			w.Eval("setDialogReact(" + ParseToJsString("Error: Select a regular file!") + ")")
 			return
-		} else if stat.Size() > int64(deviceSize) {
+		} else if stat.Size() > deviceSize {
 			w.Eval("setDialogReact(" + ParseToJsString("Error: The disk image is too big to fit on the selected drive!") + ")")
 			return
 		}
-		fileSizeStr := strconv.Itoa(int(stat.Size()))
+		fileSizeStr := strconv.FormatInt(stat.Size(), 10)
 		channel, stdin, err := app.CopyConvert(file, device)
 		inputPipe = stdin
 		if err != nil {
@@ -233,7 +233,7 @@ func main() {
 						result = progress.Error.Error()
 					} else {
 						w.Dispatch(func() {
-							w.Eval("setProgressReact({ bytes: " + strconv.Itoa(progress.Bytes) +
+							w.Eval("setProgressReact({ bytes: " + strconv.FormatInt(progress.Bytes, 10) +
 								", total: " + fileSizeStr +
 								", speed: " + ParseToJsString(progress.Speed) +
 								", phase: " + ParseToJsString(progress.Phase) + " })")

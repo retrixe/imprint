@@ -13,5 +13,5 @@ type Device struct {
 	Name  string
 	Model string
 	Size  string
-	Bytes int
+	Bytes int64
 }

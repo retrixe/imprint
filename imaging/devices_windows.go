@@ -35,7 +35,7 @@ func GetDevices(platform Platform) ([]Device, error) {
 			indexOffset = 1
 		}
 		if disk[1+indexOffset] == "Removable Media" {
-			bytes, _ := strconv.Atoi(disk[3+indexOffset])
+			bytes, _ := strconv.ParseInt(disk[3+indexOffset], 10, 64)
 			device := Device{
 				Name:  disk[0+indexOffset],
 				Size:  BytesToString(bytes, false),

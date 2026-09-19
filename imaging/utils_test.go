@@ -10,7 +10,7 @@ func TestBytesToString(t *testing.T) {
 	t.Parallel()
 	testCases := []struct {
 		name         string
-		bytes        int
+		bytes        int64
 		binaryPowers bool
 		expected     string
 	}{

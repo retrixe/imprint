@@ -40,23 +40,23 @@ func (e *NotExistsError) Error() string {
 
 // FormatProgress formats the progress of a dd-like operation.
 // There's some minor differences in output with dd, mainly decimal places and kB vs KB.
-func FormatProgress(total int, delta int64, action string, floatPrec bool) string {
-	str := strconv.Itoa(total) + " bytes " +
+func FormatProgress(total int64, delta int64, action string, floatPrec bool) string {
+	str := strconv.FormatInt(total, 10) + " bytes " +
 		"(" + BytesToString(total, false) + ", " + BytesToString(total, true) + ") " + action + ", "
 	if floatPrec {
 		timeDifference := float64(delta) / 1000
-		speed := 0
+		var speed int64 = 0
 		if timeDifference > 0 {
-			speed = int(float64(total) / timeDifference)
+			speed = int64(float64(total) / timeDifference)
 		}
 		str += strconv.FormatFloat(timeDifference, 'f', 3, 64) + " s, " + BytesToString(speed, false) + "/s"
 	} else {
-		timeDifference := int(delta) / 1000
-		speed := 0
+		timeDifference := delta / 1000
+		var speed int64 = 0
 		if timeDifference > 0 {
 			speed = total / timeDifference
 		}
-		str += strconv.Itoa(timeDifference) + " s, " + BytesToString(speed, false) + "/s"
+		str += strconv.FormatInt(timeDifference, 10) + " s, " + BytesToString(speed, false) + "/s"
 	}
 	return str
 }
@@ -119,7 +119,7 @@ func WriteDiskImage(iff string, of string) error {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 	startTime := time.Now().UnixMilli()
-	var total int
+	var total int64
 	buf := make([]byte, bs)
 	syncInterval := 4
 	for {
@@ -133,7 +133,7 @@ func WriteDiskImage(iff string, of string) error {
 		} else if n2 != n1 {
 			return ErrReadWriteMismatch
 		}
-		total += n1
+		total += int64(n1)
 		if errRead == io.EOF {
 			break
 		}
@@ -180,7 +180,7 @@ func ValidateDiskImage(iff string, of string) error {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 	startTime := time.Now().UnixMilli()
-	var total int
+	var total int64
 	buf1 := make([]byte, bs)
 	buf2 := make([]byte, bs)
 	for {
@@ -197,7 +197,7 @@ func ValidateDiskImage(iff string, of string) error {
 		if !bytes.Equal(buf1[:n1], buf2[:n2]) {
 			return ErrDeviceValidationFailed
 		}
-		total += n1
+		total += int64(n1)
 		if err1 == io.EOF {
 			break
 		}

@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func BytesToString(bytes int, binaryPowers bool) string {
+func BytesToString(bytes int64, binaryPowers bool) string {
 	i := ""
 	var divisor float64 = 1000
 	if binaryPowers {
@@ -25,7 +25,7 @@ func BytesToString(bytes int, binaryPowers bool) string {
 	} else if kb >= 1 {
 		return strconv.FormatFloat(kb, 'f', 1, 64) + " K" + i + "B"
 	} else {
-		return strconv.Itoa(bytes) + " B"
+		return strconv.FormatInt(bytes, 10) + " B"
 	}
 }
 

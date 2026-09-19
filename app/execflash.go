@@ -15,7 +15,7 @@ import (
 
 // DdProgress is a struct containing progress of the dd operation.
 type DdProgress struct {
-	Bytes int
+	Bytes int64
 	Speed string
 	Phase string
 	Error error
@@ -104,7 +104,7 @@ func CopyConvert(iff string, of string) (chan DdProgress, io.WriteCloser, error)
 			} else if ok && strings.HasPrefix(after, "bytes (") {
 				// TODO: Probably handle error, but we can't tell full dd behavior without seeing the code.
 				// Well, custom dd is the default now anyways.
-				bytes, _ := strconv.Atoi(before)
+				bytes, _ := strconv.ParseInt(before, 10, 64)
 				split := strings.Split(text, ", ")
 				mutex.Lock()
 				if channelClosed {

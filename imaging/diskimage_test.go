@@ -219,7 +219,7 @@ func TestHandleStopInput(t *testing.T) {
 func TestFormatProgress(t *testing.T) {
 	testCases := []struct {
 		name       string
-		totalBytes int
+		totalBytes int64
 		delta      int64
 		action     string
 		floatPrec  bool

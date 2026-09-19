@@ -154,7 +154,7 @@ func GetDevices(platform Platform) ([]Device, error) {
 			continue
 		}
 
-		bytes, _ := strconv.Atoi(deviceInfo["SIZE"])
+		bytes, _ := strconv.ParseInt(deviceInfo["SIZE"], 10, 64)
 		devices = append(devices, Device{
 			Model: deviceInfo["MODEL"],
 			Name:  "/dev/" + deviceInfo["KNAME"],
