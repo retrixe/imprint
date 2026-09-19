@@ -227,3 +227,11 @@ func UnmountDeviceWithPlatform(platform UnixPlatform, device string) error {
 	}
 	return f.Close()
 }
+
+// SyncAllDisks calls the sync() syscall on Unix systems to flush all buffers globally to disk.
+//
+// On Windows, this is a no-op.
+func SyncAllDisks() error {
+	syscall.Sync()
+	return nil
+}

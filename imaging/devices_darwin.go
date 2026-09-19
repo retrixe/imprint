@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"strconv"
 	"strings"
+	"syscall"
 )
 
 // GetDevices returns the list of USB devices available to read/write from.
@@ -72,4 +73,11 @@ func UnmountDeviceWithPlatform(platform Platform, device string) error {
 		return err
 	}
 	return nil
+}
+
+// SyncAllDisks calls the sync() syscall on Unix systems to flush all buffers globally to disk.
+//
+// On Windows, this is a no-op.
+func SyncAllDisks() error {
+	return syscall.Sync()
 }

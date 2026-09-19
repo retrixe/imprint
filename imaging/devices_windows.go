@@ -64,3 +64,10 @@ func UnmountDevice(device string) error {
 	// FIXME: Discover device partitions and recursively unmount them.
 	return nil
 }
+
+// SyncAllDisks calls the sync() syscall on Unix systems to flush all buffers globally to disk.
+//
+// On Windows, this is a no-op.
+func SyncAllDisks() error {
+	return nil
+}

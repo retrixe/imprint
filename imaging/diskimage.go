@@ -91,10 +91,8 @@ func RunDd(iff string, of string) error {
 	} else if err != nil {
 		return fmt.Errorf("dd command failed! %w", err)
 	}
-	if runtime.GOOS != "windows" && runtime.GOOS != "linux" {
-		// A syscall would be better, but I don't want to wrap syscall.Sync in go:build for an unused fn
-		err := exec.Command("sync").Run()
-		if err != nil {
+	if runtime.GOOS != "linux" {
+		if err := SyncAllDisks(); err != nil {
 			return fmt.Errorf("failed to sync writes to disk! %w", err)
 		}
 	}
