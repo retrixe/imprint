@@ -65,6 +65,26 @@ func UnmountDevice(device string) error {
 	return nil
 }
 
+// DeviceLock represents a lock held on a block device, returned by [AcquireDeviceLock].
+//
+// The type is platform-specific. Such a lock can be closed by calling [DeviceLock.Release].
+type DeviceLock struct{}
+
+// AcquireDeviceLock attempts to acquire a lock on the block device to prevent other processes from
+// accessing it during re-partitioning or image writes.
+//
+// Depending on the platform convention, this may be a cooperative or an exclusive lock.
+func AcquireDeviceLock(device string) (DeviceLock, error) {
+	// FIXME
+	return DeviceLock{}, nil
+}
+
+// Release releases a [DeviceLock] lock currently held on a block device.
+func (lock DeviceLock) Release() error {
+	// FIXME
+	return nil
+}
+
 // SyncAllDisks calls the sync() syscall on Unix systems to flush all buffers globally to disk.
 //
 // On Windows, this is a no-op.

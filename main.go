@@ -89,6 +89,12 @@ func main() {
 			totalPhases = "2"
 		}
 		log.Println("Phase 1/" + totalPhases + ": Unmounting disk.")
+		lock, err := imaging.AcquireDeviceLock(args[1])
+		if err != nil {
+			log.Println(err)
+			os.Exit(1)
+		}
+		defer lock.Release()
 		if err := imaging.UnmountDevice(args[1]); err != nil {
 			log.Println(err)
 			if !strings.HasSuffix(args[1], "debug.iso") {

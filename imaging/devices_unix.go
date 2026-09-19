@@ -228,6 +228,38 @@ func UnmountDeviceWithPlatform(platform UnixPlatform, device string) error {
 	return f.Close()
 }
 
+// DeviceLock represents a lock held on a block device, returned by [AcquireDeviceLock].
+//
+// The type is platform-specific. Such a lock can be closed by calling [DeviceLock.Release].
+type DeviceLock struct{ *os.File }
+
+// AcquireDeviceLock attempts to acquire a lock on the block device to prevent other processes from
+// accessing it during re-partitioning or image writes.
+//
+// Depending on the platform convention, this may be a cooperative or an exclusive lock.
+func AcquireDeviceLock(device string) (DeviceLock, error) {
+	// O_WRONLY because udev waits for IN_CLOSE_WRITE events
+	f, err := os.OpenFile(device, os.O_WRONLY, 0)
+	if err != nil {
+		return DeviceLock{}, err
+	}
+	err = syscall.Flock(int(f.Fd()), syscall.LOCK_EX) // Skip LOCK_NB, we wait to get the lock
+	if err != nil {
+		f.Close()
+		return DeviceLock{}, err
+	}
+	return DeviceLock{f}, nil
+}
+
+// Release releases a [DeviceLock] lock currently held on a block device.
+func (lock DeviceLock) Release() error {
+	if lock.File == nil {
+		return nil
+	}
+	defer lock.Close()
+	return syscall.Flock(int(lock.Fd()), syscall.LOCK_UN|syscall.LOCK_NB)
+}
+
 // SyncAllDisks calls the sync() syscall on Unix systems to flush all buffers globally to disk.
 //
 // On Windows, this is a no-op.
