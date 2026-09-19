@@ -106,7 +106,7 @@ func WriteDiskImage(iff string, of string) error {
 	// References to use:
 	// https://stackoverflow.com/questions/21032426/low-level-disk-i-o-in-golang
 	// https://stackoverflow.com/questions/56512227/how-to-read-and-write-low-level-raw-disk-in-windows-and-go
-	quit := handleStopInput(os.Stdin, func() { os.Exit(0) })
+	quit := handleStopInput(os.Stdin, func() { os.Exit(0) }) // TODO: Don't use exit code 0
 	src, err := openFile(iff, os.O_RDONLY, 0, "file")
 	if err != nil {
 		return err
