@@ -83,9 +83,15 @@ func RunDd(iff string, of string) error {
 	if err != nil {
 		return err
 	}
-	quit := handleStopInput(os.Stdin, func() { cmd.Process.Kill() })
+	quit := handleStopInput(os.Stdin, func() {
+		if cmd.ProcessState == nil {
+			cmd.Process.Kill()
+		} else {
+			os.Exit(0)
+		}
+	})
+	defer func() { quit <- true }()
 	err = cmd.Wait()
-	quit <- true
 	if err != nil && cmd.ProcessState.ExitCode() != 0 {
 		os.Exit(cmd.ProcessState.ExitCode())
 	} else if err != nil {
@@ -105,6 +111,7 @@ func WriteDiskImage(iff string, of string) error {
 	// https://stackoverflow.com/questions/21032426/low-level-disk-i-o-in-golang
 	// https://stackoverflow.com/questions/56512227/how-to-read-and-write-low-level-raw-disk-in-windows-and-go
 	quit := handleStopInput(os.Stdin, func() { os.Exit(0) }) // TODO: Don't use exit code 0
+	defer func() { quit <- true }()
 	src, err := openFile(iff, os.O_RDONLY, 0, "file")
 	if err != nil {
 		return err
@@ -159,13 +166,13 @@ func WriteDiskImage(iff string, of string) error {
 	} else {
 		println(FormatProgress(total, time.Now().UnixMilli()-startTime, "copied", true))
 	}
-	quit <- true
 	return nil
 }
 
 // ValidateDiskImage checks if the block device contents match the given disk image.
 func ValidateDiskImage(iff string, of string) error {
 	quit := handleStopInput(os.Stdin, func() { os.Exit(0) })
+	defer func() { quit <- true }()
 	src, err := openFile(iff, os.O_RDONLY, 0, "file")
 	if err != nil {
 		return err
@@ -208,7 +215,6 @@ func ValidateDiskImage(iff string, of string) error {
 		}
 	}
 	println(FormatProgress(total, time.Now().UnixMilli()-startTime, "validated", true))
-	quit <- true
 	return nil
 }
 
@@ -233,6 +239,7 @@ func openFile(filePath string, flag int, mode fs.FileMode, name string) (*os.Fil
 }
 
 func handleStopInput(input io.Reader, cancel func()) chan bool {
+	// FIXME: https://benjamincongdon.me/blog/2020/04/23/Cancelable-Reads-in-Go/
 	quit := make(chan bool, 1)
 	go (func() {
 		reader := bufio.NewReader(input)
