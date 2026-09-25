@@ -3,6 +3,7 @@
 package imaging
 
 import (
+	"context"
 	"errors"
 	"io/fs"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 )
 
 // Cheers to https://stackoverflow.com/a/6525975
@@ -237,18 +239,31 @@ type DeviceLock struct{ *os.File }
 // accessing it during re-partitioning or image writes.
 //
 // Depending on the platform convention, this may be a cooperative or an exclusive lock.
-func AcquireDeviceLock(device string) (DeviceLock, error) {
+func AcquireDeviceLock(ctx context.Context, device string) (DeviceLock, error) {
 	// O_WRONLY because udev waits for IN_CLOSE_WRITE events
 	f, err := os.OpenFile(device, os.O_WRONLY, 0)
 	if err != nil {
 		return DeviceLock{}, err
 	}
-	err = syscall.Flock(int(f.Fd()), syscall.LOCK_EX) // Skip LOCK_NB, we wait to get the lock
-	if err != nil {
-		f.Close()
-		return DeviceLock{}, err
+	// Poll with LOCK_NB instead every 100ms to support a timeout via context.Context.
+	// TODO: https://kawasin73.hatenablog.com/entry/2019/04/07/161330
+	//       https://stackoverflow.com/questions/5255220/fcntl-flock-how-to-implement-a-timeout
+	//       https://github.com/util-linux/util-linux/blob/master/sys-utils/flock.c
+	for {
+		err = syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+		if err == nil {
+			return DeviceLock{f}, nil
+		} else if !errors.Is(err, syscall.EWOULDBLOCK) {
+			f.Close()
+			return DeviceLock{}, err
+		}
+		select {
+		case <-ctx.Done():
+			f.Close()
+			return DeviceLock{}, ctx.Err()
+		case <-time.After(100 * time.Millisecond):
+		}
 	}
-	return DeviceLock{f}, nil
 }
 
 // Release releases a [DeviceLock] lock currently held on a block device.

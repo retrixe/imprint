@@ -1,6 +1,7 @@
 package imaging
 
 import (
+	"context"
 	"io/fs"
 	"strconv"
 	"strings"
@@ -84,7 +85,7 @@ type DeviceLock struct{}
 // accessing it during re-partitioning or image writes.
 //
 // Depending on the platform convention, this may be a cooperative or an exclusive lock.
-func AcquireDeviceLock(device string) (DeviceLock, error) {
+func AcquireDeviceLock(ctx context.Context, device string) (DeviceLock, error) {
 	// FIXME
 	return DeviceLock{}, nil
 }

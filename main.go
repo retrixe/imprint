@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"io"
@@ -12,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	_ "embed"
 
@@ -89,10 +91,11 @@ func main() {
 			totalPhases = "2"
 		}
 		log.Println("Phase 1/" + totalPhases + ": Unmounting disk.")
-		lock, err := imaging.AcquireDeviceLock(args[1])
+		lockCtx, lockCancel := context.WithTimeout(context.Background(), 30*time.Second)
+		lock, err := imaging.AcquireDeviceLock(lockCtx, args[1])
+		lockCancel()
 		if err != nil {
-			log.Println(err)
-			os.Exit(1)
+			log.Fatalln("Failed to lock the selected device:", err)
 		}
 		defer lock.Release()
 		if err := imaging.UnmountDevice(args[1]); err != nil {
