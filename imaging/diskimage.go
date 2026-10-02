@@ -98,6 +98,8 @@ func RunDd(iff string, of string) error {
 		return fmt.Errorf("dd command failed! %w", err)
 	}
 	if runtime.GOOS != "linux" {
+		// On macOS, this actually doesn't provide guarantees that data has been committed to the actual
+		// storage medium. However, RunDd only exists for experimentatal testing, so whatever.
 		if err := SyncAllDisks(); err != nil {
 			return fmt.Errorf("failed to sync writes to disk! %w", err)
 		}

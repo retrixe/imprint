@@ -89,6 +89,8 @@ func (lock DeviceLock) Release() error {
 // SyncAllDisks calls the sync() syscall on Unix systems to flush all buffers globally to disk.
 //
 // On Windows, this is a no-op.
+//
+// On macOS, this may return before the buffers are completely flushed.
 func SyncAllDisks() error {
 	return nil
 }
